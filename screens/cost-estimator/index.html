@@ -1,0 +1,744 @@
+<!doctype html>
+
+<html class="light" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>EstateForge | AI Construction Cost Estimator</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "inverse-on-surface": "#f2efff",
+                            "on-primary": "#ffffff",
+                            "surface-container-low": "#f5f2ff",
+                            "surface-container-high": "#e8e6ff",
+                            "secondary-container": "#a2eded",
+                            "surface-container-lowest": "#ffffff",
+                            outline: "#74777f",
+                            "on-primary-container": "#86a0cd",
+                            "on-primary-fixed": "#001b3c",
+                            "secondary-fixed-dim": "#89d3d4",
+                            "on-surface-variant": "#43474e",
+                            secondary: "#13696a",
+                            "on-secondary": "#ffffff",
+                            background: "#fcf8ff",
+                            "on-tertiary-fixed": "#002019",
+                            "on-primary-fixed-variant": "#2d476f",
+                            "surface-container-highest": "#e1e0ff",
+                            "surface-bright": "#fcf8ff",
+                            "surface-tint": "#455f88",
+                            "primary-container": "#1a365d",
+                            "outline-variant": "#c4c6cf",
+                            "secondary-fixed": "#a5eff0",
+                            error: "#ba1a1a",
+                            "on-tertiary": "#ffffff",
+                            "on-secondary-container": "#1a6d6e",
+                            "on-tertiary-container": "#00b393",
+                            "error-container": "#ffdad6",
+                            "on-secondary-fixed-variant": "#004f50",
+                            "surface-container": "#eeecff",
+                            "on-error": "#ffffff",
+                            "inverse-surface": "#2c2d4d",
+                            "on-background": "#171837",
+                            primary: "#002045",
+                            "surface-dim": "#d7d6ff",
+                            "on-tertiary-fixed-variant": "#005141",
+                            "primary-fixed-dim": "#adc7f7",
+                            surface: "#fcf8ff",
+                            "primary-fixed": "#d6e3ff",
+                            "tertiary-fixed": "#4afdd3",
+                            "tertiary-container": "#003e31",
+                            "inverse-primary": "#adc7f7",
+                            tertiary: "#00261d",
+                            "on-secondary-fixed": "#002020",
+                            "surface-variant": "#e1e0ff",
+                            "tertiary-fixed-dim": "#0be0b8",
+                            "on-error-container": "#93000a",
+                            "on-surface": "#171837",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.25rem",
+                            lg: "0.5rem",
+                            xl: "0.75rem",
+                            full: "9999px",
+                        },
+                        fontFamily: {
+                            headline: ["Inter"],
+                            body: ["Inter"],
+                            label: ["Inter"],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            .material-symbols-outlined {
+                font-variation-settings:
+                    "FILL" 0,
+                    "wght" 400,
+                    "GRAD" 0,
+                    "opsz" 24;
+            }
+            .glass-nav {
+                background: rgba(252, 248, 255, 0.8);
+                backdrop-filter: blur(12px);
+            }
+            .mobile-link {
+                color: #43474e;
+                font-weight: 500;
+            }
+
+            .mobile-link:hover {
+                color: #13696a;
+            }
+        </style>
+    </head>
+    <body
+        class="bg-background text-on-background font-body selection:bg-secondary-fixed selection:text-on-secondary-fixed"
+    >
+        <!-- TopAppBar -->
+        <header
+            class="fixed top-0 w-full z-50 glass-nav shadow-[0_32px_32px_-12px_rgba(23,24,55,0.04)]"
+        >
+            <div
+                class="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 md:px-8"
+            >
+                <a
+                    href="../../index.html#home"
+                    class="text-xl font-semibold tracking-tight text-primary"
+                    >EstateForge</a
+                >
+
+                <nav
+                    id="desktop-nav"
+                    class="hidden items-center gap-8 text-sm font-medium tracking-tight md:flex"
+                >
+                    <a
+                        href="../../index.html#home"
+                        class="text-on-surface-variant transition-colors hover:text-secondary"
+                        >Home</a
+                    >
+                    <a
+                        href="../../index.html#featured"
+                        class="text-on-surface-variant transition-colors hover:text-secondary"
+                        >Properties</a
+                    >
+                    <a
+                        href="../../index.html#ecosystem"
+                        class="text-on-surface-variant transition-colors hover:text-secondary"
+                        >AI Tools</a
+                    >
+                    <a
+                        href="index.html"
+                        class="border-b-2 border-secondary pb-1 font-semibold text-secondary"
+                        >Cost Estimator</a
+                    >
+                    <a
+                        href="../../index.html#contact"
+                        class="text-on-surface-variant transition-colors hover:text-secondary"
+                        >Contact</a
+                    >
+                </nav>
+
+                <div class="hidden items-center gap-4 md:flex">
+                    <a
+                        href="mailto:support@estateforge.bd"
+                        class="rounded-lg px-4 py-2 text-sm font-medium text-on-surface-variant transition-all hover:bg-surface-container-low"
+                    >
+                        Login
+                    </a>
+                    <a
+                        href="mailto:sales@estateforge.bd?subject=Create%20EstateForge%20Account"
+                        class="rounded-lg bg-gradient-to-br from-primary to-primary-container px-6 py-2 text-sm font-semibold text-white"
+                    >
+                        Register
+                    </a>
+                </div>
+
+                <button
+                    id="menu-toggle"
+                    class="rounded-lg p-2 text-primary md:hidden"
+                    aria-label="Toggle menu"
+                    aria-expanded="false"
+                >
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+            </div>
+
+            <div
+                id="mobile-nav"
+                class="hidden border-t border-outline-variant/30 bg-white/95 px-6 py-4 md:hidden"
+            >
+                <div class="flex flex-col gap-3 text-sm font-medium">
+                    <a href="../../index.html#home" class="mobile-link">Home</a>
+                    <a href="../../index.html#featured" class="mobile-link"
+                        >Properties</a
+                    >
+                    <a href="../../index.html#ecosystem" class="mobile-link"
+                        >AI Tools</a
+                    >
+                    <a href="index.html" class="mobile-link">Cost Estimator</a>
+                    <a href="../../index.html#contact" class="mobile-link"
+                        >Contact</a
+                    >
+                </div>
+            </div>
+        </header>
+        <main class="pt-24 pb-16 px-6 max-w-7xl mx-auto">
+            <!-- Hero Section -->
+            <section class="mb-16">
+                <h1
+                    class="text-4xl md:text-5xl font-bold tracking-tight text-primary mb-4"
+                >
+                    Precision Cost Intelligence
+                </h1>
+                <p class="text-on-surface-variant max-w-2xl text-lg">
+                    Use Bangladesh-focused cost intelligence to estimate
+                    construction budgets using local labor, material, and
+                    city-level price multipliers.
+                </p>
+            </section>
+            <!-- Main Bento Content -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Left: Input Form (Surface-Container-Low) -->
+                <div
+                    class="lg:col-span-5 bg-surface-container-low p-8 rounded-xl space-y-8"
+                >
+                    <div class="flex items-center gap-3 mb-6">
+                        <span
+                            class="material-symbols-outlined text-secondary text-3xl"
+                            >analytics</span
+                        >
+                        <h2 class="text-xl font-semibold text-primary">
+                            Project Parameters
+                        </h2>
+                    </div>
+                    <div class="space-y-6">
+                        <!-- Area Input -->
+                        <div class="relative">
+                            <label
+                                class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2"
+                                >Total Area (Sq Ft)</label
+                            >
+                            <input
+                                id="areaSqft"
+                                class="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface placeholder:text-outline/50 focus:ring-2 focus:ring-secondary/20 transition-all"
+                                placeholder="e.g. 2500"
+                                type="number"
+                                min="300"
+                            />
+                        </div>
+                        <!-- Type Selection -->
+                        <div>
+                            <label
+                                class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2"
+                                >Project Type</label
+                            >
+                            <div class="grid grid-cols-2 gap-3">
+                                <button
+                                    id="typeResidential"
+                                    type="button"
+                                    data-type="residential"
+                                    class="type-option flex items-center justify-center gap-2 p-4 bg-surface-container-highest border-2 border-secondary text-on-secondary-container rounded-lg font-medium"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-sm"
+                                        >home</span
+                                    >
+                                    Residential
+                                </button>
+                                <button
+                                    id="typeCommercial"
+                                    type="button"
+                                    data-type="commercial"
+                                    class="type-option flex items-center justify-center gap-2 p-4 bg-surface-container-highest hover:bg-surface-container-high transition-all text-on-surface-variant rounded-lg font-medium border-2 border-transparent"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-sm"
+                                        >corporate_fare</span
+                                    >
+                                    Commercial
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Material Quality Chips -->
+                        <div>
+                            <label
+                                class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2"
+                                >Material Quality</label
+                            >
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    data-quality="essential"
+                                    class="quality-chip px-4 py-2 rounded-full bg-secondary-container text-on-secondary-container text-sm font-medium"
+                                >
+                                    Essential
+                                </button>
+                                <button
+                                    type="button"
+                                    data-quality="premium"
+                                    class="quality-chip px-4 py-2 rounded-full bg-surface-container-highest text-on-surface-variant text-sm font-medium hover:bg-surface-container-high transition-colors"
+                                >
+                                    Premium
+                                </button>
+                                <button
+                                    type="button"
+                                    data-quality="ultra"
+                                    class="quality-chip px-4 py-2 rounded-full bg-surface-container-highest text-on-surface-variant text-sm font-medium hover:bg-surface-container-high transition-colors"
+                                >
+                                    Ultra-Luxe
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Location Input -->
+                        <div class="relative">
+                            <label
+                                class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2"
+                                >Development Location</label
+                            >
+                            <div
+                                class="flex items-center bg-surface-container-highest rounded-lg p-1"
+                            >
+                                <span
+                                    class="material-symbols-outlined px-3 text-outline"
+                                    >location_on</span
+                                >
+                                <select
+                                    id="locationCity"
+                                    class="w-full bg-transparent border-none p-3 text-on-surface focus:ring-0"
+                                >
+                                    <option value="Dhaka">Dhaka</option>
+                                    <option value="Chattogram">
+                                        Chattogram
+                                    </option>
+                                    <option value="Sylhet">Sylhet</option>
+                                    <option value="Khulna">Khulna</option>
+                                    <option value="Rajshahi">Rajshahi</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Action -->
+                        <button
+                            id="generateEstimate"
+                            type="button"
+                            class="w-full py-4 bg-gradient-to-br from-primary to-primary-container text-white rounded-lg font-bold text-lg shadow-xl hover:opacity-90 transition-all"
+                        >
+                            Generate Estimate
+                        </button>
+                    </div>
+                </div>
+                <!-- Right: Results Dashboard (Surface-Container-Highest) -->
+                <div class="lg:col-span-7 space-y-8">
+                    <!-- Main Estimate Card -->
+                    <div
+                        class="bg-surface-container-highest p-8 rounded-xl shadow-[0_32px_32px_-12px_rgba(23,24,55,0.04)] relative overflow-hidden"
+                    >
+                        <div class="absolute top-0 right-0 p-6">
+                            <span
+                                class="px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold uppercase tracking-widest rounded"
+                                >AI Confirmed</span
+                            >
+                        </div>
+                        <div class="mb-10">
+                            <p class="text-on-surface-variant font-medium mb-1">
+                                Estimated Project Total
+                            </p>
+                            <div class="flex items-baseline gap-2">
+                                <h3
+                                    id="estimateTotal"
+                                    class="text-5xl font-extrabold text-primary tracking-tighter"
+                                >
+                                    BDT 48,250,000
+                                </h3>
+                                <span
+                                    id="marketShift"
+                                    class="text-secondary font-semibold"
+                                    >+2.4% Dhaka market shift</span
+                                >
+                            </div>
+                        </div>
+                        <!-- Asymmetric Cost Breakdown -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-6">
+                                <div class="flex items-center justify-between">
+                                    <span
+                                        class="text-sm font-medium text-on-surface-variant"
+                                        >Materials &amp; Supply</span
+                                    >
+                                    <span
+                                        id="materialsCost"
+                                        class="text-sm font-bold text-primary"
+                                        >BDT 25,090,000</span
+                                    >
+                                </div>
+                                <div
+                                    class="w-full h-1.5 bg-surface-container-low rounded-full overflow-hidden"
+                                >
+                                    <div
+                                        id="materialsBar"
+                                        class="bg-secondary h-full w-[52%]"
+                                    ></div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span
+                                        class="text-sm font-medium text-on-surface-variant"
+                                        >Labor &amp; Skilled Trade</span
+                                    >
+                                    <span
+                                        id="laborCost"
+                                        class="text-sm font-bold text-primary"
+                                        >BDT 15,920,000</span
+                                    >
+                                </div>
+                                <div
+                                    class="w-full h-1.5 bg-surface-container-low rounded-full overflow-hidden"
+                                >
+                                    <div
+                                        id="laborBar"
+                                        class="bg-secondary h-full w-[33%]"
+                                    ></div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span
+                                        class="text-sm font-medium text-on-surface-variant"
+                                        >Permits &amp; Administrative</span
+                                    >
+                                    <span
+                                        id="permitsCost"
+                                        class="text-sm font-bold text-primary"
+                                        >BDT 4,340,000</span
+                                    >
+                                </div>
+                                <div
+                                    class="w-full h-1.5 bg-surface-container-low rounded-full overflow-hidden"
+                                >
+                                    <div
+                                        id="permitsBar"
+                                        class="bg-secondary h-full w-[9%]"
+                                    ></div>
+                                </div>
+                            </div>
+                            <!-- Visual Chart Mockup (Editorial Style) -->
+                            <div
+                                class="bg-surface p-6 rounded-xl flex items-center justify-center relative min-h-[200px]"
+                            >
+                                <div
+                                    class="absolute inset-0 opacity-10 pointer-events-none"
+                                >
+                                    <div
+                                        class="w-full h-full"
+                                        style="
+                                            background-image: radial-gradient(
+                                                circle at 2px 2px,
+                                                #13696a 1px,
+                                                transparent 0
+                                            );
+                                            background-size: 24px 24px;
+                                        "
+                                    ></div>
+                                </div>
+                                <!-- Circular Gauge Representation -->
+                                <div
+                                    class="relative w-32 h-32 flex items-center justify-center"
+                                >
+                                    <svg
+                                        class="w-full h-full transform -rotate-90"
+                                    >
+                                        <circle
+                                            class="text-surface-container-low"
+                                            cx="64"
+                                            cy="64"
+                                            fill="transparent"
+                                            r="58"
+                                            stroke="currentColor"
+                                            stroke-width="8"
+                                        ></circle>
+                                        <circle
+                                            class="text-secondary"
+                                            cx="64"
+                                            cy="64"
+                                            fill="transparent"
+                                            r="58"
+                                            stroke="currentColor"
+                                            stroke-dasharray="364.4"
+                                            stroke-dashoffset="120"
+                                            stroke-width="8"
+                                        ></circle>
+                                    </svg>
+                                    <div
+                                        class="absolute flex flex-col items-center"
+                                    >
+                                        <span
+                                            id="efficiencyValue"
+                                            class="text-lg font-bold text-primary"
+                                            >68%</span
+                                        >
+                                        <span
+                                            class="text-[10px] text-on-surface-variant uppercase"
+                                            >Efficiency</span
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Secondary Intelligence Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div
+                            class="bg-white p-6 rounded-xl flex items-start gap-4"
+                        >
+                            <div
+                                class="p-3 bg-surface-container-low rounded-lg"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-secondary"
+                                    >trending_down</span
+                                >
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-primary">
+                                    Savings Insight
+                                </h4>
+                                <p
+                                    id="savingsInsight"
+                                    class="text-sm text-on-surface-variant"
+                                >
+                                    Using local AAC block suppliers in Gazipur
+                                    can reduce wall material cost by about BDT
+                                    420,000.
+                                </p>
+                            </div>
+                        </div>
+                        <div
+                            class="bg-white p-6 rounded-xl flex items-start gap-4"
+                        >
+                            <div
+                                class="p-3 bg-surface-container-low rounded-lg"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-secondary"
+                                    >schedule</span
+                                >
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-primary">
+                                    Timeline Delta
+                                </h4>
+                                <p
+                                    id="timelineDelta"
+                                    class="text-sm text-on-surface-variant"
+                                >
+                                    Estimated completion based on current
+                                    Bangladesh supply lead times: 13 months.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Call to Action -->
+                    <div
+                        class="bg-primary text-white p-8 rounded-xl flex flex-col md:flex-row items-center justify-between gap-6"
+                    >
+                        <div class="text-center md:text-left">
+                            <h4 class="text-xl font-bold mb-1">
+                                Secure Your Materials Today
+                            </h4>
+                            <p class="text-on-primary-container text-sm">
+                                Lock in current Bangladesh market rates with our
+                                vetted supplier network.
+                            </p>
+                        </div>
+                        <a
+                            href="mailto:supply@estateforge.bd?subject=Bangladesh%20Material%20Supplier%20Request"
+                            class="bg-tertiary-fixed text-on-tertiary-fixed px-8 py-3 rounded-lg font-bold hover:brightness-105 transition-all"
+                            >Contact a Supplier</a
+                        >
+                    </div>
+                </div>
+            </div>
+        </main>
+        <!-- Map/Context Section -->
+        <section id="regional-variance" class="max-w-7xl mx-auto px-6 mb-24">
+            <div
+                class="bg-surface-container-low rounded-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-3"
+            >
+                <div class="p-12 lg:col-span-1">
+                    <h3 class="text-2xl font-bold text-primary mb-4">
+                        Regional Variance
+                    </h3>
+                    <p
+                        class="text-on-surface-variant text-sm leading-relaxed mb-8"
+                    >
+                        Costs vary across Bangladesh due to transport, labor
+                        availability, and import dependency. Our AI updates
+                        these trends daily.
+                    </p>
+                    <div class="space-y-4">
+                        <div
+                            class="flex justify-between items-center py-3 border-b border-outline-variant/10"
+                        >
+                            <span class="text-sm font-medium">Dhaka</span>
+                            <span class="text-sm font-bold text-error"
+                                >+8.2%</span
+                            >
+                        </div>
+                        <div
+                            class="flex justify-between items-center py-3 border-b border-outline-variant/10"
+                        >
+                            <span class="text-sm font-medium">Chattogram</span>
+                            <span
+                                class="text-sm font-bold text-primary-fixed-dim"
+                                >+4.8%</span
+                            >
+                        </div>
+                        <div class="flex justify-between items-center py-3">
+                            <span class="text-sm font-medium">Rajshahi</span>
+                            <span class="text-sm font-bold text-secondary"
+                                >-1.7%</span
+                            >
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="lg:col-span-2 min-h-[400px] bg-surface-container-highest relative"
+                >
+                    <img
+                        class="w-full h-full object-cover opacity-60"
+                        data-alt="Stylized architectural blueprints and site map overlay with neon digital data points and connectivity lines in deep blue tones"
+                        src="../../assets/images/cost-estimator/regional-variance.png"
+                    />
+                    <div
+                        class="absolute inset-0 bg-gradient-to-r from-surface-container-low via-transparent to-transparent"
+                    ></div>
+                </div>
+            </div>
+        </section>
+        <!-- Footer -->
+        <footer
+            class="bg-[#f5f2ff] dark:bg-[#002045] w-full rounded-t-none border-t border-outline-variant/10"
+        >
+            <div
+                class="grid grid-cols-1 md:grid-cols-4 gap-12 px-8 py-16 max-w-7xl mx-auto"
+            >
+                <div class="md:col-span-1">
+                    <span
+                        class="text-2xl font-bold text-[#002045] dark:text-[#ffffff] mb-4 block"
+                        >EstateForge</span
+                    >
+                    <p
+                        class="text-[#43474e] dark:text-[#c4c6cf] font-['Inter'] text-sm leading-relaxed"
+                    >
+                        © 2024 EstateForge. AI-Driven Real Estate Curation.
+                    </p>
+                </div>
+                <div>
+                    <h5
+                        class="text-primary dark:text-tertiary-fixed font-bold mb-4 uppercase text-xs tracking-widest"
+                    >
+                        Platform
+                    </h5>
+                    <ul class="space-y-2 text-sm font-['Inter']">
+                        <li>
+                            <a
+                                class="text-[#43474e] dark:text-[#c4c6cf] hover:text-[#13696a] transition-colors"
+                                href="../../index.html#featured"
+                                >Marketplace</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                class="text-[#13696a] font-medium"
+                                href="index.html"
+                                >Cost Estimator</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                class="text-[#43474e] dark:text-[#c4c6cf] hover:text-[#13696a] transition-colors"
+                                href="../../index.html#ecosystem"
+                                >Portfolio</a
+                            >
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h5
+                        class="text-primary dark:text-tertiary-fixed font-bold mb-4 uppercase text-xs tracking-widest"
+                    >
+                        Company
+                    </h5>
+                    <ul class="space-y-2 text-sm font-['Inter']">
+                        <li>
+                            <a
+                                class="text-[#43474e] dark:text-[#c4c6cf] hover:text-[#13696a] transition-colors"
+                                href="../../index.html#home"
+                                >Our Story</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                class="text-[#43474e] dark:text-[#c4c6cf] hover:text-[#13696a] transition-colors"
+                                href="mailto:ethics@estateforge.bd"
+                                >AI Ethics</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                class="text-[#43474e] dark:text-[#c4c6cf] hover:text-[#13696a] transition-colors"
+                                href="mailto:careers@estateforge.bd"
+                                >Careers</a
+                            >
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h5
+                        class="text-primary dark:text-tertiary-fixed font-bold mb-4 uppercase text-xs tracking-widest"
+                    >
+                        Support
+                    </h5>
+                    <ul class="space-y-2 text-sm font-['Inter']">
+                        <li>
+                            <a
+                                class="text-[#43474e] dark:text-[#c4c6cf] hover:text-[#13696a] transition-colors"
+                                href="mailto:support@estateforge.bd"
+                                >Documentation</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                class="text-[#43474e] dark:text-[#c4c6cf] hover:text-[#13696a] transition-colors"
+                                href="mailto:api@estateforge.bd"
+                                >API Status</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                class="text-[#43474e] dark:text-[#c4c6cf] hover:text-[#13696a] transition-colors"
+                                href="mailto:expert@estateforge.bd"
+                                >Contact Expert</a
+                            >
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </footer>
+        <script src="estimator.js"></script>
+    </body>
+</html>
