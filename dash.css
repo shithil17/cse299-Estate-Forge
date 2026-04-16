@@ -1,0 +1,208 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f6f9;
+}
+
+/* Navbar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #004080;
+    color: white;
+    padding: 10px 20px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 100;
+}
+
+.navbar .logo {
+    height: 40px;
+}
+
+.navbar-left {
+    display: flex;
+    align-items: center;
+}
+
+.menu-btn {
+    font-size: 22px;
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-right .user-pic {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.navbar-right .welcome {
+    margin-right: 20px;
+}
+
+.navbar-right .logout {
+    color: white;
+    text-decoration: none;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    background: #222;
+    height: 100vh;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    padding-top: 20px;
+    transition: all 0.3s ease;
+    overflow-y: auto;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    margin: 10px 0;
+    position: relative;
+}
+
+.sidebar ul li a {
+    color: white;
+    padding: 12px 20px;
+    display: block;
+    text-decoration: none;
+    transition: padding-left 0.3s ease;
+}
+
+.sidebar ul li a:hover,
+.sidebar ul li.active a {
+    background: #004080;
+    border-left: 5px solid #ffcc00;
+    padding-left: 25px;
+}
+
+/* General classes for all expanding menus */
+.menu-item .submenu {
+    display: none;
+    list-style: none;
+    padding: 0;
+    background: #333;
+    margin-left: 20px;
+}
+
+.menu-item.has-submenu:hover > .submenu {
+    display: block;
+}
+
+.menu-item .submenu li a {
+    padding: 10px 20px;
+    font-size: 0.9em;
+}
+
+.menu-item .submenu li a:hover {
+    background: #0056b3;
+}
+
+.sidebar.active {
+    left: -220px;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 240px;
+    padding: 80px 20px 20px;
+    transition: margin-left 0.3s ease;
+}
+
+.main-content.shift {
+    margin-left: 20px;
+}
+
+.page-header h1 {
+    margin: 0;
+    color: #004080;
+}
+
+.page-header p {
+    color: #555;
+}
+
+/* Profile Section */
+.profile-section {
+    display: flex;
+    gap: 40px;
+    margin-top: 20px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.profile-left {
+    text-align: center;
+}
+
+.profile-left .profile-pic {
+    width: 100px;
+    border-radius: 50%;
+}
+
+.profile-right {
+    flex: 1;
+}
+
+/* Activity Table */
+.activity-status {
+    margin-top: 30px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.activity-status table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.activity-status th,
+.activity-status td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+.activity-status th {
+    background: #004080;
+    color: white;
+}
+
+.done {
+    color: green;
+    font-weight: bold;
+}
+
+.not-done {
+    color: red;
+    font-weight: bold;
+}
+
+.btn-view {
+    padding: 5px 10px;
+    background: #004080;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
