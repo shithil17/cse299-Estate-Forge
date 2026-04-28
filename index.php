@@ -1,3 +1,65 @@
+<?php
+require_once 'conn.php';
+session_start();
+
+$db = new Database();
+$conn = $db->getConnection();
+
+$isLoggedIn = false;
+$firstName = "";
+$sid = "";
+
+// 1. Capture Session ID from URL or Session
+if (!empty($_GET['sid'])) {
+    $sid = $_GET['sid'];
+    $_SESSION['SessionID'] = $sid; // Keep session array in sync
+} elseif (!empty($_SESSION['SessionID'])) {
+    $sid = $_SESSION['SessionID'];
+}
+
+// 2. Validate Session against Database
+if (!empty($sid)) {
+    // Joining Session table with users table to get the FirstName
+    $stmt = $conn->prepare("SELECT u.FirstName FROM Session s JOIN users u ON s.UserID = u.UserID WHERE s.SessionID = ?");
+    if ($stmt) {
+        $stmt->bind_param("s", $sid);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($row = $result->fetch_assoc()) {
+            $isLoggedIn = true;
+            $firstName = htmlspecialchars($row['FirstName']);
+        } else {
+            // Session is invalid or expired
+            $sid = "";
+            unset($_SESSION['SessionID']);
+            unset($_SESSION['UserID']);
+        }
+        $stmt->close();
+    }
+}
+
+// 3. Helper Function to safely append SessionID to links
+function buildUrl($url, $sid) {
+    if (empty($sid)) return $url;
+    
+    // Ignore direct anchors, external links, and mailto links
+    if (strpos($url, '#') === 0 || strpos($url, 'mailto:') === 0 || strpos($url, 'http') === 0) {
+        return $url;
+    }
+    
+    // Handle URLs that already have a hash fragment (e.g., page.php#section)
+    $hash = '';
+    if (strpos($url, '#') !== false) {
+        $parts = explode('#', $url);
+        $url = $parts[0];
+        $hash = '#' . $parts[1];
+    }
+    
+    $separator = (strpos($url, '?') === false) ? '?' : '&';
+    return $url . $separator . 'sid=' . urlencode($sid) . $hash;
+}
+?>
 <!doctype html>
 <html lang="en" class="scroll-smooth">
     <head>
@@ -72,7 +134,7 @@
                         >AI Tools</a
                     >
                     <a
-                        href="screens/cost-estimator/index.html"
+                        href="<?= buildUrl('screens/cost-estimator/index.html', $sid) ?>"
                         class="text-on-surface-variant transition-colors hover:text-secondary"
                         >Cost Estimator</a
                     >
@@ -84,14 +146,20 @@
                 </nav>
 
                 <div class="hidden items-center gap-4 md:flex">
+                    <?php if ($isLoggedIn): ?>
+                        <span class="text-sm font-bold text-primary mr-2">
+                            Hi, <?= $firstName ?>
+                        </span>
+                    <?php else: ?>
+                        <a
+                            href="<?= buildUrl('login.php', $sid) ?>"
+                            class="rounded-lg px-4 py-2 text-sm font-medium text-on-surface-variant transition-all hover:bg-surface-low"
+                        >
+                            Login
+                        </a>
+                    <?php endif; ?>
                     <a
-                        href="login.php"
-                        class="rounded-lg px-4 py-2 text-sm font-medium text-on-surface-variant transition-all hover:bg-surface-low"
-                    >
-                        Login
-                    </a>
-                    <a
-                        href="settings.php"
+                        href="<?= buildUrl('settings.php', $sid) ?>"
                         class="rounded-lg bg-gradient-to-br from-primary to-primary-container px-6 py-2 text-sm font-semibold text-white"
                     >
                         Settings
@@ -113,13 +181,20 @@
                 class="hidden border-t border-outline-variant/30 bg-white/95 px-6 py-4 md:hidden"
             >
                 <div class="flex flex-col gap-3 text-sm font-medium">
+                    <?php if ($isLoggedIn): ?>
+                        <span class="block px-4 py-2 text-primary font-bold bg-surface-low rounded-lg mb-2">Hi, <?= $firstName ?></span>
+                    <?php endif; ?>
                     <a href="#home" class="mobile-link">Home</a>
                     <a href="#featured" class="mobile-link">Properties</a>
                     <a href="#ecosystem" class="mobile-link">AI Tools</a>
-                    <a href="screens/cost-estimator/index.html" class="mobile-link"
+                    <a href="<?= buildUrl('screens/cost-estimator/index.html', $sid) ?>" class="mobile-link"
                         >Cost Estimator</a
                     >
                     <a href="#contact" class="mobile-link">Contact</a>
+                    <?php if (!$isLoggedIn): ?>
+                        <a href="<?= buildUrl('login.php', $sid) ?>" class="mobile-link text-secondary">Login</a>
+                    <?php endif; ?>
+                    <a href="<?= buildUrl('settings.php', $sid) ?>" class="mobile-link text-primary">Settings</a>
                 </div>
             </div>
         </header>
@@ -219,8 +294,13 @@
             >
                 <form
                     id="search-form"
+                    action="<?= buildUrl('./pages/products.php', $sid) ?>"
+                    method="GET"
                     class="flex flex-col gap-2 rounded-2xl border border-outline-variant/20 bg-white p-4 shadow-2xl md:flex-row md:items-center md:rounded-full md:p-2"
                 >
+                    <?php if (!empty($sid)): ?>
+                        <input type="hidden" name="sid" value="<?= htmlspecialchars($sid) ?>" />
+                    <?php endif; ?>
                     <div class="search-field">
                         <span
                             class="material-symbols-outlined text-on-surface-variant"
@@ -228,6 +308,7 @@
                         >
                         <input
                             id="location"
+                            name="search"
                             type="text"
                             placeholder="Dhaka, Chattogram, Sylhet..."
                             class="search-input"
@@ -238,10 +319,10 @@
                             class="material-symbols-outlined text-on-surface-variant"
                             >home</span
                         >
-                        <select id="propertyType" class="search-input">
-                            <option>Ready Flat</option>
-                            <option>Commercial</option>
-                            <option>Land Plot</option>
+                        <select id="propertyType" name="type" class="search-input">
+                            <option value="">Ready Flat</option>
+                            <option value="commercial">Commercial</option>
+                            <option value="land">Land Plot</option>
                         </select>
                     </div>
                     <div class="search-field">
@@ -280,7 +361,7 @@
                         </p>
                     </div>
                     <a
-                        href="#featured"
+                        href="<?= buildUrl('./pages/products.php', $sid) ?>"
                         class="group flex items-center gap-2 font-bold text-secondary transition-all hover:gap-4"
                         >View All Properties
                         <span class="material-symbols-outlined"
@@ -376,7 +457,7 @@
             <section class="mx-auto max-w-7xl px-6 pb-24 md:px-8">
                 <div class="rounded-[2rem] border border-outline-variant/20 bg-white/80 px-8 py-10 shadow-[0_24px_48px_-24px_rgba(23,24,55,0.18)] backdrop-blur">
                     <p class="mb-6 text-center text-xs font-semibold uppercase tracking-[0.3em] text-on-surface-variant">
-                        Trusted Developers &amp; Suppliers
+                        Trusted Developers & Suppliers
                     </p>
                     <div class="grid grid-cols-2 gap-6 text-center text-base font-semibold text-on-surface-variant md:grid-cols-6">
                         <span>AuraDev</span>
@@ -457,7 +538,7 @@
                             <div class="flex justify-between"><span>Permits</span><span>BDT 1,220,000</span></div>
                         </div>
                         <a
-                            href="screens/cost-estimator/index.html"
+                            href="<?= buildUrl('screens/cost-estimator/index.html', $sid) ?>"
                             class="mt-5 inline-block rounded-xl bg-tertiary-fixed px-6 py-3 font-bold text-emerald-950 transition-transform hover:scale-105"
                         >
                             Run Estimate
@@ -501,7 +582,7 @@
                         <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-surface-high text-primary">
                             <span class="material-symbols-outlined">handshake</span>
                         </div>
-                        <h3 class="mb-3 text-lg font-bold text-primary">3. Find &amp; Contact</h3>
+                        <h3 class="mb-3 text-lg font-bold text-primary">3. Find & Contact</h3>
                         <p class="text-sm leading-relaxed text-on-surface-variant">
                             Seamlessly connect with sellers or developers through our secure messaging portal.
                         </p>
@@ -555,7 +636,7 @@
                             >
                         </li>
                         <li>
-                            <a href="screens/cost-estimator/index.html" class="hover:text-secondary"
+                            <a href="<?= buildUrl('screens/cost-estimator/index.html', $sid) ?>" class="hover:text-secondary"
                                 >AI Estimator</a
                             >
                         </li>
@@ -610,7 +691,7 @@
             >
                 <span>© 2026 Rems. AI-Driven Real Estate Curation.</span>
                 <div class="flex gap-6">
-                    <a href="screens/cost-estimator/index.html" class="hover:text-secondary">System Status</a>
+                    <a href="<?= buildUrl('screens/cost-estimator/index.html', $sid) ?>" class="hover:text-secondary">System Status</a>
                     <a href="mailto:security@Rems.bd" class="hover:text-secondary">Security</a>
                 </div>
             </div>

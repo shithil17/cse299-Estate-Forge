@@ -1,164 +1,154 @@
 <?php
 require_once 'conn.php';
-require_once 'libs/GoogleAuthenticator.php';
-require_once 'Factory/UserActionFactory.php'; // Required for the Factory Pattern
-
 session_start();
 
 $errors = [];
 $db = new Database();
 $conn = $db->getConnection();
 
-// Context class
-class AuthContext {
-    private $strategy;
-
-    public function __construct(AuthStrategy $strategy) {
-        $this->strategy = $strategy;
-    }
-
-    public function authenticate($conn, $identifier, $password, $code = null): bool {
-        return $this->strategy->authenticate($conn, $identifier, $password, $code);
-    }
-
-    public function getUserId(): ?int {
-        return $this->strategy->getUserId();
-    }
-}
-
-// Password-only authentication strategy
-class PasswordOnlyAuth implements AuthStrategy {
-    private $userID = null;
-
-    public function authenticate($conn, $identifier, $password, $code = null): bool {
-        $stmt = $conn->prepare("SELECT UserID, UserFlag, password FROM users WHERE Email = ?");
-        if (!$stmt) {
-            die("Prepare failed: " . $conn->error);
-        }
-
-        $stmt->bind_param("s", $identifier);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($user = $result->fetch_assoc()) {
-            if ((int)$user['UserFlag'] === 0) {
-                $stmt->close();
-                return false;
-            }
-
-            if (password_verify($password, $user['password']) || $password === $user['password']) {
-                $this->userID = $user['UserID'];
-                $stmt->close();
-                return true;
-            }
-        }
-
-        $stmt->close();
-        return false;
-    }
-
-    public function getUserId(): ?int {
-        return $this->userID;
-    }
-}
-
-// Interface class
-interface AuthStrategy {
-    public function authenticate($conn, $identifier, $password, $code = null): bool;
-    public function getUserId(): ?int;
-}
-
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $identifier = trim($_POST['email'] ?? '');
     $password   = trim($_POST['password'] ?? '');
+    $stayLoggedIn = isset($_POST['stay_signed_in']) ? 1 : 0;
 
     if ($identifier === '' || $password === '') {
-        $errors['login'] = "Please enter both username/email and password.";
+        $errors['login'] = "Please enter both email and password.";
     } else {
+        // Admin Bypass
         if ($identifier === 'admin' && $password === 'admin') {
             $_SESSION['isAdmin'] = true;
             header('Location: admin/adminpanel.php');
             exit();
         }
 
-        // Check user credentials
-        $auth        = new AuthContext(new PasswordOnlyAuth());
-        $authSuccess = $auth->authenticate($conn, $identifier, $password);
+        // Basic Authentication
+        $stmt = $conn->prepare("SELECT UserID, UserFlag, password FROM users WHERE Email = ?");
+        $stmt->bind_param("s", $identifier);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
-        if ($authSuccess) {
-            $userID = $auth->getUserId();
+        if ($user = $result->fetch_assoc()) {
+            if (password_verify($password, $user['password']) || $password === $user['password']) {
+                
+                $userID = $user['UserID'];
+                // Generates a unique 30-character ID
+                $sessionID = bin2hex(random_bytes(15)); 
+                $lastPage = "index.php";
 
-            // After successful password verification, check for 2FA and UserFlag
-            $stmtCheck2FA = $conn->prepare("SELECT 2fa, UserFlag FROM users WHERE UserID = ?");
-            if (!$stmtCheck2FA) {
-                die("Prepare failed: " . $conn->error);
-            }
-            $stmtCheck2FA->bind_param("i", $userID);
-            $stmtCheck2FA->execute();
-            $resultCheck2FA = $stmtCheck2FA->get_result();
-            $userAuthData   = $resultCheck2FA->fetch_assoc();
-            $stmtCheck2FA->close();
+                // Update Session Table
+                $stmtSession = $conn->prepare("REPLACE INTO Session (SessionID, UserID, LastLogin, LastPageLink, StayLoggedIn) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)");
+                $stmtSession->bind_param("sssi", $sessionID, $userID, $lastPage, $stayLoggedIn);
+                $stmtSession->execute();
 
-            $_SESSION['UserID'] = $userID;
+                // Set Session Variables
+                $_SESSION['UserID'] = $userID;
+                $_SESSION['SessionID'] = $sessionID;
 
-            if ((int)$userAuthData['2fa'] === 1) {
-                // User has 2FA enabled, redirect to verification page
-                header("Location: 2fa/verify-2fa.php");
+                // FORWARD SESSION ID TO index.php
+                // We append the sessionID to the URL so index.php can identify the session
+                header("Location: index.php?sid=" . urlencode($sessionID));
                 exit();
             } else {
-                // User does not have 2FA, use the Factory Pattern to redirect
-                try {
-                    $userAction = UserActionFactory::createAction($userAuthData['UserFlag']);
-                    $userAction->execute();
-                } catch (Exception $e) {
-                    $errors['login'] = "Login failed: " . $e->getMessage();
-                }
+                $errors['login'] = "Invalid password.";
             }
         } else {
-            $errors['login'] = "Invalid username/email or password.";
+            $errors['login'] = "User not found.";
         }
     }
 }
 ?>
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <title>Rems - Login</title>
-    <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-    <div class="navbar">
-        <a href="#" class="logo">Rems System</a>
-        <div class="links">
-            <a href="#">Home</a>
-            <a href="#">About</a>
-            <a href="#">Contact</a>
-        </div>
-    </div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Rems | Secure Login</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            primary: "#002045",
+                            secondary: "#13696a",
+                            surface: "#fcf8ff",
+                            "on-surface": "#171837",
+                            "outline-variant": "#c4c6cf",
+                        },
+                    },
+                },
+            };
+        </script>
+    </head>
+    <body class="bg-surface text-on-surface font-[Inter]">
+        
+        <div class="flex min-h-screen">
+            <div class="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-24">
+                <div class="mx-auto w-full max-w-sm">
+                    <a href="index.php" class="text-2xl font-black tracking-tighter text-primary">Rems</a>
+                    <h2 class="mt-8 text-3xl font-extrabold tracking-tight text-primary">Welcome back</h2>
+                    <p class="mt-2 text-sm text-slate-500">Please enter your details to access your account.</p>
 
-    <div class="main-content">
-        <div class="login-box">
-            <div class="login-container">
-                <h2>Login</h2>
+                    <?php if (!empty($errors['login'])): ?>
+                        <div class="mt-6 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-800 border border-red-100">
+                            <?= htmlspecialchars($errors['login']) ?>
+                        </div>
+                    <?php endif; ?>
 
-                <?php if (!empty($errors['login'])): ?>
-                    <div class="error"><?= htmlspecialchars($errors['login']) ?></div>
-                <?php endif; ?>
+                    <form method="POST" action="" class="mt-10 space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-on-surface">Email Address</label>
+                            <input 
+                                type="email" name="email" required 
+                                value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                                class="mt-2 block w-full rounded-xl border border-outline-variant bg-white px-4 py-3 text-sm focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all"
+                                placeholder="name@example.com"
+                            />
+                        </div>
 
-                <form method="POST" action="">
-                    <input type="text" name="email" placeholder="Username or Email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" />
-                    <input type="password" name="password" placeholder="Password" required />
-                    <button type="submit">Login</button>
-                </form>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-on-surface">Password</label>
+                            <input 
+                                type="password" name="password" required 
+                                class="mt-2 block w-full rounded-xl border border-outline-variant bg-white px-4 py-3 text-sm focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all"
+                                placeholder="••••••••"
+                            />
+                        </div>
 
-                <a class="back-link" href="index.html">← Back to Home</a>
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="stay_signed_in" class="rounded border-outline-variant text-secondary focus:ring-secondary">
+                                <span class="text-sm font-medium text-slate-600">Stay signed in</span>
+                            </label>
+                            <a href="#" class="text-sm font-bold text-secondary hover:underline">Forgot password?</a>
+                        </div>
+
+                        <button type="submit" class="w-full rounded-xl bg-primary py-4 text-sm font-bold text-white shadow-lg transition-all hover:bg-primary/90 hover:scale-[1.01] active:scale-95">
+                            Sign In
+                        </button>
+                    </form>
+
+                    <p class="mt-8 text-center text-sm text-slate-500">
+                        Don't have an account? 
+                        <a href="register.php" class="font-bold text-secondary hover:underline">Create an account</a>
+                    </p>
+                </div>
             </div>
-            <div class="image-container">
-                <img src="resources/login.png" alt="Login Illustration" />
+
+            <div class="hidden w-1/2 bg-primary lg:block relative overflow-hidden">
+                <div class="absolute inset-0 opacity-40">
+                    <img src="resources/login.png" alt="Background" class="h-full w-full object-cover">
+                </div>
+                <div class="relative flex h-full flex-col justify-end p-16 text-white">
+                    <blockquote class="text-2xl font-medium leading-relaxed">
+                        "The best way to manage real estate is through intelligence and simplicity. Rems brings both to your fingertips."
+                    </blockquote>
+                    <p class="mt-6 text-sm font-bold uppercase tracking-widest text-secondary">Rems Core Systems</p>
+                </div>
             </div>
         </div>
-    </div>
-</body>
+
+    </body>
 </html>
