@@ -1,0 +1,324 @@
+{
+  "name": "Listing Inquiry Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "5f727805-dc7a-4acd-9155-30ac4a8d98bc",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "47f11147-8295-45f5-8f1c-994fb4ba95fe",
+              "name": "chatInput",
+              "value": "Is there a balcony in property bproperty-0?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0de086f8-548e-4c9b-aa89-af9d8ea3ef1b",
+      "name": "Set Manual Test Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "96315416-a684-46e4-b5f0-06bf96ef55f2",
+      "webhookId": "a034c1f0-bf07-4fbe-a24b-a2f164226050",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const chatInput = String($json.chatInput ?? '');\nconst idMatch   = chatInput.match(/\\bbproperty-\\d+\\b/i);\nconst propertyId = idMatch ? idMatch[0].toLowerCase() : '';\n\nreturn {\n  ...$json,\n  userQuestion: chatInput,\n  propertyId,\n};"
+      },
+      "id": "9f1cfb79-e4c6-42b6-a500-f4f39179b4f8",
+      "name": "Extract Property ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "33333333-3333-3333-3333-333333333333",
+              "leftValue": "={{ $json.propertyId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a9b0c123-d456-789a-e1f2-a3b4c5d6e7f8",
+      "name": "If Property ID Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        432,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "44444444-4444-4444-4444-444444444444",
+              "name": "output",
+              "value": "Please provide a property ID in the format bproperty-<number> (e.g. bproperty-0) so I can look up the listing.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b0c1d234-e567-89ab-f1a2-b3c4d5e6f7a8",
+      "name": "No ID Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.userQuestion }}",
+        "options": {
+          "systemMessage": "You are a Listing Inquiry Handler assistant for a Bangladeshi real-estate platform.\n\nThe property ID has already been extracted and validated upstream. Your only jobs are:\n1) Use the MySQL tool once to fetch listing data for the property.\n2) Answer only from the returned listing fields. Focus on property_overview and property_description.\n3) For balcony questions, only confirm a balcony if it is explicitly mentioned in the overview or description text. Do not infer.\n\nDatabase table: properties\nColumns available: id, city, locality, property_overview, property_description,\n  relaxation_amenity_count, security_amenity_count, social_amenity_count,\n  service_staff_amenity_count, property_url\n\nResponse rules:\n- If the DB returns no row, say the listing was not found.\n- If found, answer clearly and cite the specific listing text as evidence.\n- Keep tone concise and helpful."
+        }
+      },
+      "id": "dc522651-5e0b-4b4d-b36e-0f0e5e724209",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        640,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {}
+      },
+      "id": "6f6b64f6-9c93-44ac-a832-a69e339fe500",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        480,
+        432
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "A0yo4kyslyDfzJcz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, city, locality, property_overview, property_description, relaxation_amenity_count, security_amenity_count, social_amenity_count, service_staff_amenity_count, property_url FROM properties WHERE id = '{{ $json.propertyId }}' LIMIT 1;",
+        "options": {}
+      },
+      "id": "df153f4a-f905-4d37-8107-09b4ddac9f1f",
+      "name": "Execute MySQL Query",
+      "type": "n8n-nodes-base.mySqlTool",
+      "typeVersion": 2.5,
+      "position": [
+        720,
+        432
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "yhK0ih0IPTwPxB9i",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "193d5979-faf7-498f-946c-ad5823ff5c61",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "06e02938-4b9d-4f59-a8f8-fdb0de31e93f",
+      "name": "Edit Fields (Set)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        944,
+        128
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Manual Test Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Manual Test Input": {
+      "main": [
+        [
+          {
+            "node": "Extract Property ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Property ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Property ID": {
+      "main": [
+        [
+          {
+            "node": "If Property ID Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Property ID Exists": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No ID Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No ID Response": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute MySQL Query": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8a922452-26d1-4bd7-ab93-a138f7a231e9",
+  "meta": {
+    "instanceId": "a9fbff149e977871da7924eb057ea5907c048999d42fee0e9b64549f16158abc"
+  },
+  "id": "PfOwbVfpzMUQsR3a",
+  "tags": []
+}

@@ -1,0 +1,348 @@
+{
+  "name": "Listing Quality Validator",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c46fa67c-1ad8-4abf-b2ba-0b9373803333",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "36f15e6a-c07e-422e-ab5f-87afdb5824d6",
+              "name": "chatInput",
+              "value": "Validate this listing: id bproperty-0, locality Dhanmondi, building type Apartment, area 2000 sqft, price 10000 BDT.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0d341769-fdf9-4755-a8f5-3c9f1f495618",
+      "name": "Set Manual Test Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "4e3566f8-aa81-4424-b943-c7c53967dc5f",
+      "webhookId": "26bcc175-c366-41b5-a5c1-1452f9ecfdfc",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const chatInput = String($json.chatInput ?? '');\n\n// ── field extraction ────────────────────────────────────────────────\nconst listingId    = (chatInput.match(/\\bbproperty-\\d+\\b/i)?.[0] ?? '').toLowerCase();\nconst locality     = (chatInput.match(/locality\\s+([^,]+)/i)?.[1] ?? '').trim();\nconst buildingType = (chatInput.match(/building\\s*type\\s+([^,]+)/i)?.[1] ?? '').trim();\nconst area         = Number(chatInput.match(/area\\s+([\\d.]+)/i)?.[1] ?? 0);\nconst price        = Number(chatInput.match(/price\\s+([\\d.]+)/i)?.[1] ?? 0);\n\n// ── SQL injection guard ─────────────────────────────────────────────\nconst sqlEsc = s => s.replace(/'/g, \"''\");\nconst localitySafe     = sqlEsc(locality);\nconst buildingTypeSafe = sqlEsc(buildingType);\n\nconst conditions = [];\nif (locality)     conditions.push(`LOWER(locality)      = LOWER('${localitySafe}')`);\nif (buildingType) conditions.push(`LOWER(building_type) = LOWER('${buildingTypeSafe}')`);\nconst whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';\n\n// ── parse validation ────────────────────────────────────────────────\nconst parseErrors = [];\nif (!price || price <= 0) parseErrors.push('price could not be parsed — expected \"price <number> BDT\"');\nif (!area  || area  <= 0) parseErrors.push('area could not be parsed — expected \"area <number> sqft\"');\n\nreturn {\n  chatInput,\n  listingId,\n  locality,\n  buildingType,\n  localitySafe,\n  buildingTypeSafe,\n  whereClause,\n  area,\n  price,\n  parseErrors,\n  hasParseErrors: parseErrors.length > 0,\n};"
+      },
+      "id": "d4f0acfd-7f61-4d2e-a4d0-e90b9ce8e908",
+      "name": "Parse Listing Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "11111111-1111-1111-1111-111111111111",
+              "leftValue": "={{ $json.hasParseErrors }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e7f8a901-b234-5678-c9d0-e1f2a3b4c5d6",
+      "name": "If Parsed OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        528,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22222222-2222-2222-2222-222222222222",
+              "name": "output",
+              "value": "={{ 'Cannot validate listing — ' + $json.parseErrors.join('; ') + '. Please provide: locality, building type, area (sqft), and price (BDT).' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f8a9b012-c345-6789-d0e1-f2a3b4c5d6e7",
+      "name": "Parse Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  AVG(CAST(price AS DECIMAL(15,2)))        AS avg_price,\n  STDDEV_POP(CAST(price AS DECIMAL(15,2))) AS std_price,\n  AVG(CAST(area  AS DECIMAL(10,2)))        AS avg_area,\n  STDDEV_POP(CAST(area  AS DECIMAL(10,2))) AS std_area,\n  COUNT(*) AS sample_size,\n  '{{ $('Parse Listing Input').item.json.listingId }}'        AS listing_id,\n  '{{ $('Parse Listing Input').item.json.localitySafe }}'     AS locality,\n  '{{ $('Parse Listing Input').item.json.buildingTypeSafe }}' AS building_type,\n  {{ $('Parse Listing Input').item.json.price }}              AS submitted_price,\n  {{ $('Parse Listing Input').item.json.area }}               AS submitted_area\nFROM properties\nWHERE {{ $('Parse Listing Input').item.json.whereClause }};",
+        "options": {}
+      },
+      "id": "464cb0cc-d295-4e4f-aa9d-4c95649b36d9",
+      "name": "Execute MySQL Query",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        720,
+        192
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "yhK0ih0IPTwPxB9i",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const row = $json;\nconst avgPrice       = Number(row.avg_price       ?? 0);\nconst stdPrice       = Number(row.std_price       ?? 0);\nconst avgArea        = Number(row.avg_area        ?? 0);\nconst stdArea        = Number(row.std_area        ?? 0);\nconst sampleSize     = Number(row.sample_size     ?? 0);\nconst submittedPrice = Number(row.submitted_price ?? 0);\nconst submittedArea  = Number(row.submitted_area  ?? 0);\n\nconst reasons = [];\nlet flagged = false;\n\n// ── no comparables ────────────────────────────────────────────────────\nif (sampleSize === 0) {\n  reasons.push('no comparable listings found for this locality/building type');\n  flagged = true;\n}\n\n// ── low sample size warning ───────────────────────────────────────────\nif (sampleSize > 0 && sampleSize < 5) {\n  reasons.push(`low comparable sample size (${sampleSize})`);\n}\n\n// ── price z-score ────────────────────────────────────────────────────\nlet zPrice = 0;\nif (sampleSize > 0) {\n  if (stdPrice === 0) {\n    reasons.push('price has zero variance across comparables — z-score indeterminate; manual review required');\n    flagged = true;\n  } else {\n    zPrice = (submittedPrice - avgPrice) / stdPrice;\n    if (Math.abs(zPrice) > 2) {\n      reasons.push(`price z-score ${zPrice.toFixed(2)} exceeds ±2 threshold`);\n      flagged = true;\n    }\n  }\n}\n\n// ── area z-score ─────────────────────────────────────────────────────\nlet zArea = 0;\nif (sampleSize > 0) {\n  if (stdArea === 0) {\n    reasons.push('area has zero variance across comparables — z-score indeterminate; manual review required');\n    flagged = true;\n  } else {\n    zArea = (submittedArea - avgArea) / stdArea;\n    if (Math.abs(zArea) > 2) {\n      reasons.push(`area z-score ${zArea.toFixed(2)} exceeds ±2 threshold`);\n      flagged = true;\n    }\n  }\n}\n\n// ── human-readable percentage deltas ─────────────────────────────────\n// These give the LLM something concrete to phrase naturally, e.g.\n// \"the price is 45 % above the neighbourhood average\".\nconst priceDeltaPct = avgPrice > 0\n  ? (((submittedPrice - avgPrice) / avgPrice) * 100).toFixed(1)\n  : null;\nconst areaDeltaPct  = avgArea  > 0\n  ? (((submittedArea  - avgArea)  / avgArea)  * 100).toFixed(1)\n  : null;\n\n// ── context block for the LLM interpretation node ────────────────────\n// Expressed entirely in plain numbers / percentages — no z-scores.\nconst llmContext = {\n  listingId:       row.listing_id    || 'unknown',\n  locality:        row.locality      || 'unknown',\n  buildingType:    row.building_type || 'unknown',\n  verdict:         flagged ? 'FLAGGED' : 'OK',\n  sampleSize,\n\n  // submitted values\n  submittedPrice,\n  submittedArea,\n\n  // market averages (null when no comparables)\n  avgPrice:       sampleSize > 0 ? avgPrice       : null,\n  avgArea:        sampleSize > 0 ? avgArea        : null,\n\n  // how far above/below the market average, as a percentage\n  // positive = above average, negative = below average\n  priceDeltaPct:  sampleSize > 0 && avgPrice > 0 ? Number(priceDeltaPct) : null,\n  areaDeltaPct:   sampleSize > 0 && avgArea  > 0 ? Number(areaDeltaPct)  : null,\n\n  // plain-English reason strings (already free of z-score language\n  // where possible; the LLM will rephrase them further)\n  reasons,\n\n  // flags to guide the LLM's tone\n  noComparables:     sampleSize === 0,\n  lowSample:         sampleSize > 0 && sampleSize < 5,\n  priceZeroVariance: sampleSize > 0 && stdPrice === 0,\n  areaZeroVariance:  sampleSize > 0 && stdArea  === 0,\n};\n\nconst verdict = flagged ? 'FLAGGED' : 'OK';\n\nreturn {\n  ...row,\n  verdict,\n  z_price:    zPrice,\n  z_area:     zArea,\n  reasons,\n  llmContext: JSON.stringify(llmContext),   // serialised for the LLM prompt\n};"
+      },
+      "id": "211bcfce-5a73-48a9-bf01-5f0cb914776e",
+      "name": "Compute Verdict",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \n'You are a helpful Bangladeshi real estate advisor. ' +\n'A listing validation system has analysed a property listing and produced the structured result below. ' +\n'Your job is to rewrite this result as a SHORT, friendly, plain-English explanation (3–6 sentences) for someone who knows nothing about statistics. ' +\n'Rules:\\n' +\n'- NEVER mention z-scores, standard deviations, or any statistical jargon.\\n' +\n'- DO use clear comparisons like \"X% above the neighbourhood average\", \"about twice the typical size\", or \"comparable to similar flats nearby\".\\n' +\n'- If the verdict is OK, be reassuring but factual.\\n' +\n'- If the verdict is FLAGGED, explain simply why it looks unusual and suggest the buyer double-check before proceeding.\\n' +\n'- If there are no comparables, say so plainly (e.g. \"We don\\'t have enough similar listings in this area to compare against yet.\").\\n' +\n'- If the sample is small, add a gentle caveat.\\n' +\n'- End with one practical next-step recommendation.\\n\\n' +\n'Structured result (JSON):\\n' +\n$json.llmContext\n}}"
+      },
+      "id": "a1b2c3d4-e5f6-7890-ab12-cd34ef567890",
+      "name": "Interpret Verdict",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1152,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "b2c3d4e5-f6a7-8901-bc23-de45fg678901",
+      "name": "Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1152,
+        384
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "A0yo4kyslyDfzJcz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a69be7e5-c2dd-45f4-ae40-8ea29d35e7aa",
+              "name": "output",
+              "value": "={{ $json.text ?? $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4f5d57c9-e706-44c7-a8c8-e6ed2f68fdfa",
+      "name": "Edit Fields (Set)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1440,
+        32
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Manual Test Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Manual Test Input": {
+      "main": [
+        [
+          {
+            "node": "Parse Listing Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Listing Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Listing Input": {
+      "main": [
+        [
+          {
+            "node": "If Parsed OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Parsed OK": {
+      "main": [
+        [
+          {
+            "node": "Execute MySQL Query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute MySQL Query": {
+      "main": [
+        [
+          {
+            "node": "Compute Verdict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Verdict": {
+      "main": [
+        [
+          {
+            "node": "Interpret Verdict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpret Verdict": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Error Response": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Interpret Verdict",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "30718753-f4ff-4e5d-98d5-c12a6b326305",
+  "meta": {
+    "instanceId": "a9fbff149e977871da7924eb057ea5907c048999d42fee0e9b64549f16158abc"
+  },
+  "id": "YP1uEe1Bnx0snM36",
+  "tags": []
+}
