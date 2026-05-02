@@ -70,7 +70,7 @@ $images = array_filter([
         
         <header class="fixed top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-outline-variant/30">
             <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 md:px-8">
-                <a href="../index.html" class="text-xl font-bold tracking-tight text-primary">Rems</a>
+                <a href="../index.php" class="text-xl font-bold tracking-tight text-primary">Rems</a>
                 <a href="products.php" class="group flex items-center gap-2 text-sm font-semibold text-on-surface-variant hover:text-secondary transition-colors">
                     <span class="material-symbols-outlined text-sm transition-transform group-hover:-translate-x-1">arrow_back</span>
                     Back to Listings
@@ -81,7 +81,65 @@ $images = array_filter([
         <main class="pt-24 pb-20">
             <div class="mx-auto max-w-7xl px-6 md:px-8">
                 
-                <div class="grid grid-cols-1 gap-10 lg:grid-cols-12 animate-fade-up">
+                <!-- NEW: Integrated Search Form routing to products.php -->
+                <div class="mb-10 animate-fade-up">
+                    <form
+                        id="search-form"
+                        action="products.php"
+                        method="GET"
+                        class="flex flex-col gap-2 rounded-2xl border border-outline-variant/20 bg-white p-4 shadow-xl md:flex-row md:items-center md:rounded-full md:p-2"
+                    >
+                        <!-- Location / Keyword Search -->
+                        <div class="flex flex-1 items-center gap-2 px-4 py-2">
+                            <span class="material-symbols-outlined text-on-surface-variant">location_on</span>
+                            <input
+                                id="location"
+                                name="search"
+                                type="text"
+                                placeholder="Search locations or keywords..."
+                                class="w-full bg-transparent text-sm outline-none placeholder:text-on-surface-variant/60"
+                            />
+                        </div>
+                        
+                        <div class="hidden h-8 w-px bg-outline-variant/30 md:block"></div>
+                        
+                        <!-- Property Type -->
+                        <div class="flex flex-1 items-center gap-2 px-4 py-2">
+                            <span class="material-symbols-outlined text-on-surface-variant">home</span>
+                            <select id="propertyType" name="type" class="w-full bg-transparent text-sm outline-none cursor-pointer">
+                                <option value="">All Types</option>
+                                <option value="Projects">Projects</option>
+                                <option value="Commercial">Rental</option>
+                                <option value="Land">Land Plot</option>
+                                <option value="Services">Services</option>
+                            </select>
+                        </div>
+
+                        <div class="hidden h-8 w-px bg-outline-variant/30 md:block"></div>
+                        
+                        <!-- Price Range -->
+                        <div class="flex flex-1 items-center gap-2 px-4 py-2">
+                            <span class="material-symbols-outlined text-on-surface-variant">payments</span>
+                            <select id="price" name="price" class="w-full bg-transparent text-sm outline-none cursor-pointer">
+                                <option value="">Any Price</option>
+                                <option value="0-5000000">Under 50 Lakhs</option>
+                                <option value="5000000-10000000">50 Lakhs - 1 Crore</option>
+                                <option value="10000000-50000000">1 Crore - 5 Crores</option>
+                                <option value="50000000-9999999999">Above 5 Crores</option>
+                            </select>
+                        </div>
+                        
+                        <button
+                            type="submit"
+                            class="flex w-full items-center justify-center rounded-xl bg-primary p-4 text-white transition-colors hover:bg-secondary md:w-auto md:rounded-full md:p-4"
+                        >
+                            <span class="material-symbols-outlined">search</span>
+                        </button>
+                    </form>
+                </div>
+                <!-- END Search Form -->
+
+                <div class="grid grid-cols-1 gap-10 lg:grid-cols-12 animate-fade-up" style="animation-delay: 0.1s;">
                     
                     <div class="lg:col-span-8 space-y-6">
                         <div class="relative aspect-[16/9] overflow-hidden rounded-[2rem] bg-slate-200 shadow-2xl">
