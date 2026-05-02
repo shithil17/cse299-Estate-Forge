@@ -120,7 +120,7 @@ if ($pStmt) {
                 <a href="#home"      class="border-b-2 border-secondary pb-1 font-semibold text-secondary">Home</a>
                 <a href="#featured"  class="text-on-surface-variant transition-colors hover:text-secondary">Properties</a>
                 <a href="#ecosystem" class="text-on-surface-variant transition-colors hover:text-secondary">AI Tools</a>
-                <a href="<?= buildUrl('screens/cost-estimator/index.php', $sid) ?>"
+                <a href="<?= buildUrl('AI/cost-estimator.php', $sid) ?>"
                    class="text-on-surface-variant transition-colors hover:text-secondary">Cost Estimator</a>
                 <a href="#contact"   class="text-on-surface-variant transition-colors hover:text-secondary">Contact</a>
             </nav>
@@ -157,7 +157,7 @@ if ($pStmt) {
                 <a href="#home"      class="mobile-link">Home</a>
                 <a href="#featured"  class="mobile-link">Properties</a>
                 <a href="#ecosystem" class="mobile-link">AI Tools</a>
-                <a href="<?= buildUrl('screens/cost-estimator/index.php', $sid) ?>" class="mobile-link">Cost Estimator</a>
+                <a href="<?= buildUrl('AI/cost-estimator.php', $sid) ?>" class="mobile-link">Cost Estimator</a>
                 <a href="#contact"   class="mobile-link">Contact</a>
                 <?php if (!$isLoggedIn): ?>
                     <a href="<?= buildUrl('login.php', $sid) ?>" class="mobile-link text-secondary">Login</a>
@@ -453,7 +453,7 @@ if ($pStmt) {
                 <h4 class="mb-4 font-bold text-primary">Platform</h4>
                 <ul class="space-y-3 text-sm text-on-surface-variant">
                     <li><a href="https://www.google.com/maps/search/property+developers+in+bangladesh" class="hover:text-secondary">Search Map</a></li>
-                    <li><a href="<?= buildUrl('screens/cost-estimator/index.php', $sid) ?>" class="hover:text-secondary">AI Estimator</a></li>
+                    <li><a href="<?= buildUrl('AI/cost-estimator.php', $sid) ?>" class="hover:text-secondary">AI Estimator</a></li>
                     <li><a href="mailto:partners@Rems.bd" class="hover:text-secondary">Developer Portal</a></li>
                 </ul>
             </div>
@@ -477,7 +477,7 @@ if ($pStmt) {
         <div class="mx-auto flex max-w-7xl flex-col gap-2 border-t border-outline-variant/30 px-6 py-6 text-sm text-on-surface-variant md:flex-row md:items-center md:justify-between md:px-8">
             <span>© 2026 Rems. AI-Driven Real Estate Curation.</span>
             <div class="flex gap-6">
-                <a href="<?= buildUrl('screens/cost-estimator/index.php', $sid) ?>" class="hover:text-secondary">System Status</a>
+                <a href="<?= buildUrl('AI/cost-estimator.php', $sid) ?>" class="hover:text-secondary">System Status</a>
                 <a href="mailto:security@Rems.bd" class="hover:text-secondary">Security</a>
             </div>
         </div>
