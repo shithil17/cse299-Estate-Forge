@@ -1,0 +1,332 @@
+{
+  "name": "AI Real Estate Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nI'm your AI Real Estate Assistant. I can help you:\n📋 Validate a property listing\n❓ Find answers about a specific property\n🔍 Search for properties matching your criteria\nWhat would you like to do today?",
+        "availableInChat": true,
+        "agentIcon": {
+          "type": "icon",
+          "value": "home"
+        },
+        "agentName": "Estate AI Assistant",
+        "agentDescription": "Intelligent real estate assistant for validation, inquiries, and property search",
+        "options": {
+          "responseMode": "responseNode"
+        }
+      },
+      "id": "2e168f0d-b175-475e-9f6c-b55fcdcf6d88",
+      "webhookId": "89e9906b-46b2-4422-a0bb-b740a89cea52",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=prompt: `=You are an intent classifier for a real estate platform.  Classify the user input into EXACTLY ONE intent:  \"validate\" - User is asking whether their OWN listing's price, size, or details               are correct, fair, or competitive.              Examples:              - \"is my 2000 sqft flat at 3000/sqft too much?\"              - \"is this price reasonable for Gulshan?\"              - \"am I pricing my apartment correctly?\"  \"inquiry\"  - User asks a specific question about a property that has an ID               matching the pattern: bproperty-XXXXX (e.g. bproperty-11975).              Examples:              - \"does bproperty-11975 have a gym?\"              - \"what floor is bproperty-203 on?\"              - \"is bproperty-5 pet friendly?\"  \"search\"   - User wants to find or browse properties matching criteria.              Examples:              - \"find me apartments in Khilgaon under 50 lakhs\"              - \"show 3 bedroom flats in Dhanmondi\"  Return ONLY the lowercase intent word. If unclear, default to \"search\".  User input: {{ $json.chatInput }}`"
+            }
+          ]
+        }
+      },
+      "id": "db7aeb6a-6389-4cd0-b0ef-5f0694cf63a3",
+      "name": "Intent Classifier",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "74ab1f02-0b13-434b-948b-f780b903ae95",
+      "name": "Google Gemini Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        304,
+        592
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "A0yo4kyslyDfzJcz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 3,
+        "output": "={{ { \"validate\": 0, \"inquiry\": 1, \"search\": 2 }[$json.text?.trim().toLowerCase()] ?? 2 }}"
+      },
+      "id": "1dde18dc-0a30-49b7-a985-03a697cd29c0",
+      "name": "Route by Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        576,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "YP1uEe1Bnx0snM36",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/YP1uEe1Bnx0snM36",
+          "cachedResultName": "Listing Quality Validator"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chatInput": "={{ $('Chat Trigger').item.json.chatInput }}"
+          },
+          "matchingColumns": [
+            "chatInput"
+          ],
+          "schema": [
+            {
+              "id": "chatInput",
+              "displayName": "chatInput",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "5d06cf88-b3cd-4764-9799-7b0689aac932",
+      "name": "Execute Validator Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "PfOwbVfpzMUQsR3a",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/PfOwbVfpzMUQsR3a",
+          "cachedResultName": "Listing Inquiry Handler"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chatInput": "={{ $('Chat Trigger').item.json.chatInput }}"
+          },
+          "matchingColumns": [
+            "chatInput"
+          ],
+          "schema": [
+            {
+              "id": "chatInput",
+              "displayName": "chatInput",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "82c16ae4-a14e-4214-a9b8-54f6795fb202",
+      "name": "Execute Inquiry Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D98P4uGGjJ5sat3m",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/D98P4uGGjJ5sat3m",
+          "cachedResultName": "Smart Search"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chatInput": "={{ $('Chat Trigger').item.json.chatInput }}"
+          },
+          "matchingColumns": [
+            "chatInput"
+          ],
+          "schema": [
+            {
+              "id": "chatInput",
+              "displayName": "chatInput",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "80732f5c-75d4-4d25-852d-65553205296c",
+      "name": "Execute Search Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ output: $json.output ?? $json.text ?? 'No response generated' }) }}",
+        "options": {}
+      },
+      "id": "402758bb-20c5-4315-919b-5a6993aace91",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        368
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Intent Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Classifier": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Execute Validator Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Inquiry Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Search Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Validator Workflow": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Inquiry Workflow": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Search Workflow": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Intent Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f9dfd89b-b5df-4b90-97e0-0b8eee8ebcad",
+  "meta": {
+    "instanceId": "a9fbff149e977871da7924eb057ea5907c048999d42fee0e9b64549f16158abc"
+  },
+  "id": "UNogU8RKBsVq155x",
+  "tags": []
+}

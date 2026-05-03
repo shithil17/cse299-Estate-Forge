@@ -8,7 +8,7 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        0,
+        -48,
         0
       ]
     },
@@ -31,7 +31,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        144,
+        176,
         0
       ]
     },
@@ -45,8 +45,27 @@
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.4,
       "position": [
-        0,
-        160
+        176,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "chatInput"
+            }
+          ]
+        }
+      },
+      "id": "b7c8d9e0-f1a2-3b4c-5d6e-7f8a9b0c1d2e",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        176,
+        384
       ]
     },
     {
@@ -54,7 +73,7 @@
         "promptType": "define",
         "text": "={{ $json.chatInput }}",
         "options": {
-          "systemMessage": "You are an expert real estate assistant for a Bangladeshi property platform. Your job is to help users find properties by converting their natural language requests into valid SQL WHERE clauses.\n\n### DATABASE SCHEMA:\nTable name: `properties`\nBelow are ALL available columns. Do NOT reference any column that is not in this list.\n\n- `id` (VARCHAR)\n- `building_type` (VARCHAR): e.g., 'Apartment', 'Commercial'\n- `building_nature` (VARCHAR): e.g., 'Residential'\n- `purpose` (VARCHAR): 'Sale' or 'Rent' — max 4 chars\n- `city` (VARCHAR): e.g., 'Dhaka', 'Chattogram'\n- `locality` (VARCHAR): e.g., 'Khilgaon', 'Bashundhara', 'Dhanmondi'\n- `address` (VARCHAR): full street address\n- `division` (VARCHAR): e.g., 'Dhaka', 'Chittagong'\\n- `zone` (VARCHAR): sub-area or zone within a city\n- `num_bed_rooms` (DECIMAL)\n- `num_bath_rooms` (DECIMAL)\n- `area` (VARCHAR): stored as text, represents size in square feet — use CAST(area AS DECIMAL) for numeric comparisons\n- `price` (VARCHAR): stored as text, represents price in BDT — use CAST(price AS DECIMAL) for numeric comparisons\n- `property_overview` (VARCHAR): human-readable summary of the listing\n- `property_description` (VARCHAR): detailed description\n- `property_url` (VARCHAR): link to the listing\n- `image_url` (VARCHAR)\n- `relaxation_amenity_count` (INT)\n- `security_amenity_count` (INT)\n- `maintenance_or_cleaning_amenity_count` (INT)\n- `social_amenity_count` (INT)\n- `expendable_amenity_count` (INT)\n- `service_staff_amenity_count` (INT)\n- `unclassify_amenity_count` (INT)\n\n### CONVERSION RULES:\n1. You MUST ONLY output a valid SQL WHERE clause. Do NOT include the word 'WHERE'. Do NOT use any column not listed above.\n2. Handle colloquial Bangladeshi language:\n   - 'lakh' or 'lakhs' = multiply by 100,000 (e.g. '70 lakhs' → 7000000)\n   - 'crore' = multiply by 10,000,000\n   - 'BDT', 'Tk', 'taka' refer to the `price` column\n   - 'sq ft', 'sqft', 'square feet' refer to the `area` column\n   - 'k' after a number means thousands (e.g. '15k' → 15000)\\n3. Because `price` and `area` are stored as VARCHAR, always wrap them in CAST when doing numeric comparisons:\n   - Correct: CAST(price AS DECIMAL) <= 7000000\n   - Wrong: price <= 7000000\n4. For text columns (city, locality, building_type, purpose, division, zone, address), always use case-insensitive matching:\n   - Preferred: LOWER(locality) LIKE '%khilgaon%'\n5. If the user does not mention 'rent', default to: purpose = 'Sale'\n6. If the user mentions a general area that could be a `zone`, `locality`, or `division`, use OR across relevant columns:\n   - e.g. (LOWER(locality) LIKE '%mirpur%' OR LOWER(zone) LIKE '%mirpur%')\n7. Only filter on amenity count columns if the user explicitly asks about amenities (e.g. 'with security', 'has gym').\n\n### STRICT RULES:\n- NEVER fabricate or guess column names. Only use columns from the schema above.\n- NEVER use columns like `title`, `name`, `property_name`, `rooms`, `beds`, `bathrooms`, `type`, or any alias not in the schema.\n- If the user's request cannot be mapped to any column in the schema, ignore that part of the request and proceed with what can be mapped.\n\n### EXAMPLES:\nUser: \\\"3 bedroom apartment in Khilgaon under 70 lakhs\\\"\nOutput: `num_bed_rooms = 3 AND LOWER(building_type) = 'apartment' AND LOWER(locality) LIKE '%khilgaon%' AND CAST(price AS DECIMAL) <= 7000000 AND purpose = 'Sale'`\n\nUser: \\\"2 bed flat for rent in Dhaka under 15k\\\"\nOutput: `num_bed_rooms = 2 AND LOWER(building_type) = 'apartment' AND LOWER(city) = 'dhaka' AND CAST(price AS DECIMAL) <= 15000 AND purpose = 'Rent'`\n\nUser: \\\"commercial space in Mirpur over 2000 sqft\\\"\nOutput: `LOWER(building_type) = 'commercial' AND (LOWER(locality) LIKE '%mirpur%' OR LOWER(zone) LIKE '%mirpur%') AND CAST(area AS DECIMAL) >= 2000 AND purpose = 'Sale'`\n\n### RESPONSE INSTRUCTIONS:\nAfter the tool returns database results, format them in a friendly, readable way. For each listing include: location details, price, size, bedroom/bathroom count, the `property_overview`, and the `property_url` as a clickable link. If no results are found, politely inform the user and suggest broadening their criteria (e.g. increasing budget, trying a nearby area, or removing bedroom filters)."
+          "systemMessage": "You are an expert real estate assistant for a Bangladeshi property platform. Your job is to help users find properties by converting their natural language requests into valid SQL WHERE clauses.\n\n### DATABASE SCHEMA:\nTable name: `properties`\nBelow are ALL available columns. Do NOT reference any column that is not in this list.\n\n- `id` (VARCHAR)\n- `building_type` (VARCHAR): one of — 'Apartment', 'House', 'Duplex', 'Shop', 'Floor', 'Office', 'Building', 'Residential Plot', 'Commercial Plot', 'Warehouse', 'Factory', 'Others'\n- `building_nature` (VARCHAR): 'Residential' or 'Commercial'\n- `purpose` (VARCHAR): 'Sale' or 'Rent'\n- `city` (VARCHAR): e.g., 'Dhaka', 'Chattogram'\n- `locality` (VARCHAR): e.g., 'Khilgaon', 'Bashundhara', 'Dhanmondi'\n- `address` (VARCHAR): full street address\n- `division` (VARCHAR): e.g., 'Dhaka', 'Chattogram'\n- `zone` (VARCHAR): sub-area or zone within a city\n- `num_bed_rooms` (DECIMAL)\n- `num_bath_rooms` (DECIMAL)\n- `area` (VARCHAR): stored as text, represents size in square feet — use CAST(area AS DECIMAL) for numeric comparisons\n- `price` (VARCHAR): stored as text, represents price in BDT — use CAST(price AS DECIMAL) for numeric comparisons\n- `property_overview` (VARCHAR): human-readable summary of the listing\n- `property_description` (VARCHAR): detailed description\n- `relaxation_amenity_count` (INT)\n- `security_amenity_count` (INT)\n- `maintenance_or_cleaning_amenity_count` (INT)\n- `social_amenity_count` (INT)\n- `expendable_amenity_count` (INT)\n- `service_staff_amenity_count` (INT)\n- `unclassify_amenity_count` (INT)\n\n### CONVERSION RULES:\n1. You MUST ONLY output a valid SQL WHERE clause. Do NOT include the word 'WHERE'. Do NOT use any column not listed above.\n2. Handle colloquial Bangladeshi language:\n   - 'lakh' or 'lakhs' = multiply by 100,000 (e.g. '70 lakhs' → 7000000)\n   - 'crore' = multiply by 10,000,000\n   - 'BDT', 'Tk', 'taka' refer to the `price` column\n   - 'sq ft', 'sqft', 'square feet' refer to the `area` column\n   - 'k' after a number means thousands (e.g. '15k' → 15000)\n3. Because `price` and `area` are stored as VARCHAR, always wrap them in CAST when doing numeric comparisons:\n   - Correct: CAST(price AS DECIMAL) <= 7000000\n   - Wrong: price <= 7000000\n4. For text columns (city, locality, building_type, purpose, division, zone, address), always use case-insensitive matching:\n   - Preferred: LOWER(locality) LIKE '%khilgaon%'\n5. If the user does not mention 'rent', default to: purpose = 'Sale'\n6. If the user mentions a general area that could be a `zone`, `locality`, or `division`, use OR across relevant columns:\n   - e.g. (LOWER(locality) LIKE '%mirpur%' OR LOWER(zone) LIKE '%mirpur%')\n7. Only filter on amenity count columns if explicitly requested. Use these exact mappings:\n   - 'gym', 'pool', 'spa', 'fitness' → relaxation_amenity_count > 0\n   - 'security', 'guard', 'cctv', 'gate' → security_amenity_count > 0\n   - 'cleaning', 'maintenance', 'janitor' → maintenance_or_cleaning_amenity_count > 0\n   - 'clubhouse', 'playground', 'park', 'community' → social_amenity_count > 0\n   - 'servant', 'staff', 'concierge' → service_staff_amenity_count > 0\n   - Do NOT use amenity filters unless the user mentions one of these keywords.\n8. Map property type keywords to the correct column as follows:\n   - 'flat' or 'apartment' → LOWER(building_type) = 'apartment'\n   - 'house' or 'bungalow' → LOWER(building_type) = 'house'\n   - 'duplex' → LOWER(building_type) = 'duplex'\n   - 'shop' → LOWER(building_type) = 'shop'\n   - 'office' → LOWER(building_type) = 'office'\n   - 'floor' → LOWER(building_type) = 'floor'\n   - 'residential plot' or 'plot' (residential context) → LOWER(building_type) = 'residential plot'\n   - 'commercial plot' → LOWER(building_type) = 'commercial plot'\n   - 'warehouse' → LOWER(building_type) = 'warehouse'\n   - 'factory' → LOWER(building_type) = 'factory'\n   - 'commercial space', 'commercial property', or generic commercial intent without a specific type → building_nature = 'Commercial'\n   - NEVER use building_type = 'commercial' — that value does not exist\n\n### STRICT RULES:\n- NEVER fabricate or guess column names. Only use columns from the schema above.\n- NEVER use columns like `title`, `name`, `property_name`, `rooms`, `beds`, `bathrooms`, `type`, `property_url`, or `image_url`.\n- NEVER use building_type = 'commercial' — use building_nature = 'Commercial' for generic commercial queries.\n- If the user's request cannot be mapped to any column in the schema, ignore that part of the request and proceed with what can be mapped.\n\n### EXAMPLES:\nUser: \"3 bedroom apartment in Khilgaon under 70 lakhs\"\nOutput: `num_bed_rooms = 3 AND LOWER(building_type) = 'apartment' AND (LOWER(locality) LIKE '%khilgaon%' OR LOWER(zone) LIKE '%khilgaon%') AND CAST(price AS DECIMAL) <= 7000000 AND purpose = 'Sale'`\n\nUser: \"2 bed flat for rent in Dhaka under 15k\"\nOutput: `num_bed_rooms = 2 AND LOWER(building_type) = 'apartment' AND LOWER(city) = 'dhaka' AND CAST(price AS DECIMAL) <= 15000 AND purpose = 'Rent'`\n\nUser: \"commercial space in Mirpur over 2000 sqft\"\nOutput: `building_nature = 'Commercial' AND (LOWER(locality) LIKE '%mirpur%' OR LOWER(zone) LIKE '%mirpur%') AND CAST(area AS DECIMAL) >= 2000 AND purpose = 'Sale'`\n\n### RESPONSE INSTRUCTIONS:\nAfter the tool returns database results, format them in a friendly, readable way. For each listing include: location details, price, size, bedroom/bathroom count, and the `property_overview`. If no results are found, politely inform the user and suggest broadening their criteria (e.g. increasing budget, trying a nearby area, or removing bedroom filters)."
         }
       },
       "id": "6a0c5afd-3002-4f42-9c15-44c97eb51334",
@@ -62,8 +81,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        288,
-        160
+        464,
+        192
       ]
     },
     {
@@ -76,8 +95,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        224,
-        384
+        400,
+        416
       ],
       "credentials": {
         "googlePalmApi": {
@@ -97,14 +116,14 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        352,
-        384
+        528,
+        416
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, building_type, purpose, city, locality, num_bed_rooms, num_bath_rooms, area, price, property_overview, property_url FROM properties WHERE {{ $fromAI('where_clause', 'The SQL WHERE clause to filter properties', 'string') }} LIMIT 5;",
+        "query": "SELECT id, building_type, purpose, city, locality, num_bed_rooms, num_bath_rooms, area, price, property_overview FROM properties WHERE {{ $fromAI('where_clause', 'The SQL WHERE clause to filter properties', 'string') }} LIMIT 5;",
         "options": {}
       },
       "id": "226eee98-5a0f-4805-ad42-c96210173987",
@@ -112,8 +131,8 @@
       "type": "n8n-nodes-base.mySqlTool",
       "typeVersion": 2.5,
       "position": [
-        480,
-        384
+        656,
+        416
       ],
       "credentials": {
         "mySql": {
@@ -141,8 +160,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        688,
-        160
+        864,
+        192
       ]
     }
   ],
@@ -171,6 +190,17 @@
       ]
     },
     "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
       "main": [
         [
           {
@@ -231,7 +261,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "b987bbe5-d1d2-4dca-a4c2-8e9d965dd4ae",
+  "versionId": "cc55232d-ab16-43ed-9b40-35345b7f4776",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "a9fbff149e977871da7924eb057ea5907c048999d42fee0e9b64549f16158abc"
