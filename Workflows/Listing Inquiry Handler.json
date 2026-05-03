@@ -8,7 +8,7 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        0,
+        -48,
         0
       ]
     },
@@ -31,7 +31,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        160,
+        176,
         0
       ]
     },
@@ -45,8 +45,27 @@
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.4,
       "position": [
-        0,
+        176,
         192
+      ]
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "chatInput"
+            }
+          ]
+        }
+      },
+      "id": "1e6640bc-2708-47eb-ad46-c1443174cf96",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        176,
+        384
       ]
     },
     {
@@ -59,7 +78,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
+        400,
         192
       ]
     },
@@ -92,7 +111,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        432,
+        624,
         192
       ]
     },
@@ -115,8 +134,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        640,
-        0
+        912,
+        48
       ]
     },
     {
@@ -124,7 +143,7 @@
         "promptType": "define",
         "text": "={{ $json.userQuestion }}",
         "options": {
-          "systemMessage": "You are a Listing Inquiry Handler assistant for a Bangladeshi real-estate platform.\n\nThe property ID has already been extracted and validated upstream. Your only jobs are:\n1) Use the MySQL tool once to fetch listing data for the property.\n2) Answer only from the returned listing fields. Focus on property_overview and property_description.\n3) For balcony questions, only confirm a balcony if it is explicitly mentioned in the overview or description text. Do not infer.\n\nDatabase table: properties\nColumns available: id, city, locality, property_overview, property_description,\n  relaxation_amenity_count, security_amenity_count, social_amenity_count,\n  service_staff_amenity_count, property_url\n\nResponse rules:\n- If the DB returns no row, say the listing was not found.\n- If found, answer clearly and cite the specific listing text as evidence.\n- Keep tone concise and helpful."
+          "systemMessage": "You are a Listing Inquiry Handler assistant for a Bangladeshi real-estate platform.\n\nThe property ID has already been extracted and validated upstream. Your only jobs are:\n1) Use the MySQL tool once to fetch listing data for the property.\n2) Answer only from the returned listing fields. Focus on property_overview and property_description.\n3) For balcony questions, only confirm a balcony if it is explicitly mentioned in the overview or description text. Do not infer.\n\nDatabase table: properties\nColumns available: id, city, locality, property_overview, property_description,\nrelaxation_amenity_count, security_amenity_count, social_amenity_count,\nservice_staff_amenity_count\n\nResponse rules:\n- If the DB returns no row, say the listing was not found.\n- If found, answer clearly and cite the specific listing text as evidence.\n- Keep tone concise and helpful."
         }
       },
       "id": "dc522651-5e0b-4b4d-b36e-0f0e5e724209",
@@ -132,8 +151,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        640,
-        192
+        848,
+        352
       ]
     },
     {
@@ -146,8 +165,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        480,
-        432
+        864,
+        576
       ],
       "credentials": {
         "googlePalmApi": {
@@ -159,7 +178,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, city, locality, property_overview, property_description, relaxation_amenity_count, security_amenity_count, social_amenity_count, service_staff_amenity_count, property_url FROM properties WHERE id = '{{ $json.propertyId }}' LIMIT 1;",
+        "query": "SELECT id, city, locality, property_overview, property_description, relaxation_amenity_count, security_amenity_count, social_amenity_count, service_staff_amenity_count FROM properties WHERE id = '{{ $json.propertyId }}' LIMIT 1;",
         "options": {}
       },
       "id": "df153f4a-f905-4d37-8107-09b4ddac9f1f",
@@ -167,8 +186,8 @@
       "type": "n8n-nodes-base.mySqlTool",
       "typeVersion": 2.5,
       "position": [
-        720,
-        432
+        992,
+        576
       ],
       "credentials": {
         "mySql": {
@@ -196,8 +215,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        944,
-        128
+        1200,
+        192
       ]
     }
   ],
@@ -226,6 +245,17 @@
       ]
     },
     "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Property ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
       "main": [
         [
           {
@@ -315,7 +345,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "8a922452-26d1-4bd7-ab93-a138f7a231e9",
+  "versionId": "46abe99c-5419-4880-b04e-e540aed6bb3a",
   "meta": {
     "instanceId": "a9fbff149e977871da7924eb057ea5907c048999d42fee0e9b64549f16158abc"
   },

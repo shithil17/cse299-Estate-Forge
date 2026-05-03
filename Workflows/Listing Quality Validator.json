@@ -8,7 +8,7 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        0,
+        -48,
         0
       ]
     },
@@ -19,7 +19,7 @@
             {
               "id": "36f15e6a-c07e-422e-ab5f-87afdb5824d6",
               "name": "chatInput",
-              "value": "Validate this listing: id bproperty-0, locality Dhanmondi, building type Apartment, area 2000 sqft, price 10000 BDT.",
+              "value": "is my listing of a apartment in Khilgaon of 2000 sqft and price 10000 BDT per sqft a good price?",
               "type": "string"
             }
           ]
@@ -31,7 +31,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        160,
+        176,
         0
       ]
     },
@@ -45,21 +45,76 @@
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.4,
       "position": [
-        0,
+        176,
         192
       ]
     },
     {
       "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "chatInput"
+            }
+          ]
+        }
+      },
+      "id": "a3f1e2d4-5b6c-7d8e-9f0a-b1c2d3e4f5a6",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        176,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \"You are a structured-data extraction assistant for a Bangladeshi real estate platform.\\n\\nRead the user message below and return ONLY a valid JSON object — no markdown, no explanation.\\n\\nFields to extract (use null if not found):\\n- chatInput: the full original user message copied verbatim\\n- listing_id: bproperty-NNN style ID if mentioned, else null\\n- locality: neighbourhood or locality name (match known areas like Khilgaon, Dhanmondi, Mirpur, etc.)\\n- city: city name (Dhaka, Chattogram, Narayanganj City, Gazipur, Sylhet, etc.)\\n- zone: zone or sub-area (Khilgaon, Dhanmondi, Mirpur, Bashundhara R/A, Banani, Uttara, etc.)\\n- building_type: one of — Apartment, Shop, Floor, Office, Building, Residential Plot, Duplex, Commercial Plot, Warehouse, Factory, House, Others — or null\\n- purpose: one of Sale / Rent — or null (map 'buy'/'sell' to 'Sale')\\n- area: area in sqft as a plain number, or null\\n- price: TOTAL price in BDT as a plain number, or null\\n\\nPRICE CONVERSION:\\n- If user says 'X BDT per sqft' AND mentions area: total_price = X × area\\n- Example: '500 sqft at 10000 per sqft' → price: 5000000, area: 500\\n- If only per-sqft price given without area: store per-sqft value in price, area: null\\n- Handle local units: 'lakh'=×100000, 'crore'=×10000000, 'k'=×1000, 'Tk'/'BDT'/'taka' = BDT currency\\n\\nReturn ONLY valid JSON. No other text.\\n\\nUser message: \" + $json.chatInput }}"
+      },
+      "id": "e1f2a3b4-c5d6-7e8f-9a0b-c1d2e3f4a5b6",
+      "name": "Extract Listing Fields",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        400,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "f2a3b4c5-d6e7-8f9a-0b1c-d2e3f4a5b6c7",
+      "name": "Gemini Extract Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        480,
+        416
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "A0yo4kyslyDfzJcz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const chatInput = String($json.chatInput ?? '');\n\n// ── field extraction ────────────────────────────────────────────────\nconst listingId    = (chatInput.match(/\\bbproperty-\\d+\\b/i)?.[0] ?? '').toLowerCase();\nconst locality     = (chatInput.match(/locality\\s+([^,]+)/i)?.[1] ?? '').trim();\nconst buildingType = (chatInput.match(/building\\s*type\\s+([^,]+)/i)?.[1] ?? '').trim();\nconst area         = Number(chatInput.match(/area\\s+([\\d.]+)/i)?.[1] ?? 0);\nconst price        = Number(chatInput.match(/price\\s+([\\d.]+)/i)?.[1] ?? 0);\n\n// ── SQL injection guard ─────────────────────────────────────────────\nconst sqlEsc = s => s.replace(/'/g, \"''\");\nconst localitySafe     = sqlEsc(locality);\nconst buildingTypeSafe = sqlEsc(buildingType);\n\nconst conditions = [];\nif (locality)     conditions.push(`LOWER(locality)      = LOWER('${localitySafe}')`);\nif (buildingType) conditions.push(`LOWER(building_type) = LOWER('${buildingTypeSafe}')`);\nconst whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';\n\n// ── parse validation ────────────────────────────────────────────────\nconst parseErrors = [];\nif (!price || price <= 0) parseErrors.push('price could not be parsed — expected \"price <number> BDT\"');\nif (!area  || area  <= 0) parseErrors.push('area could not be parsed — expected \"area <number> sqft\"');\n\nreturn {\n  chatInput,\n  listingId,\n  locality,\n  buildingType,\n  localitySafe,\n  buildingTypeSafe,\n  whereClause,\n  area,\n  price,\n  parseErrors,\n  hasParseErrors: parseErrors.length > 0,\n};"
+        "jsCode": "// The LLM already did the heavy lifting; we just parse its JSON output.\nconst raw = String($json.text ?? '');\n\nlet extracted = {};\ntry {\n  // Strip accidental markdown fences if Gemini adds them\n  const clean = raw.replace(/^```(?:json)?s*/i, '').replace(/s*```$/, '').trim();\n  extracted = JSON.parse(clean);\n} catch (e) {\n  // If JSON is malformed, surface a clear error below via parseErrors\n}\n\n// Map LLM output → workflow fields\nconst chatInput    = String(extracted.chatInput    ?? '').trim();\nconst listingId    = String(extracted.listing_id   ?? '').toLowerCase().trim();\nconst locality     = String(extracted.locality      ?? '').trim();\nconst buildingType = String(extracted.building_type ?? '').trim();\nconst city         = String(extracted.city          ?? '').trim();\nconst zone         = String(extracted.zone          ?? '').trim();\nconst area         = Number(extracted.area          ?? 0);\nconst price        = Number(extracted.price         ?? 0);\n\n// ── SQL injection guard ─────────────────────────────────────────────\nconst sqlEsc = s => s.replace(/'/g, \"''\");\n\n// Build WHERE using every field the LLM was able to extract,\n// matching the actual DB column names from the properties table.\nconst conditions = [];\nif (locality)     conditions.push(`LOWER(locality)      = LOWER('${sqlEsc(locality)}')`);\nif (buildingType) conditions.push(`LOWER(building_type) = LOWER('${sqlEsc(buildingType)}')`);\nif (city)         conditions.push(`LOWER(city)          = LOWER('${sqlEsc(city)}')`);\nif (zone)         conditions.push(`LOWER(zone)          = LOWER('${sqlEsc(zone)}')`);\nconst whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';\n\n// ── validation ──────────────────────────────────────────────────────\nconst parseErrors = [];\nif (!extracted || Object.keys(extracted).length === 0)\n  parseErrors.push('could not parse the LLM extraction response — please try rephrasing');\nif (!price || price <= 0)\n  parseErrors.push('price per sqft not found — please mention it (e.g. \"10,000 BDT per sqft\")');\nif (!area  || area  <= 0)\n  parseErrors.push('area not found — please mention it (e.g. \"2000 sqft\")');\n\nreturn {\n  chatInput,\n  listingId,\n  locality,\n  buildingType,\n  city,\n  zone,\n  localitySafe:     sqlEsc(locality),\n  buildingTypeSafe: sqlEsc(buildingType),\n  whereClause,\n  area,\n  price,\n  parseErrors,\n  hasParseErrors: parseErrors.length > 0,\n};"
       },
       "id": "d4f0acfd-7f61-4d2e-a4d0-e90b9ce8e908",
       "name": "Parse Listing Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        320,
+        752,
         192
       ]
     },
@@ -92,7 +147,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        528,
+        976,
         192
       ]
     },
@@ -103,7 +158,7 @@
             {
               "id": "22222222-2222-2222-2222-222222222222",
               "name": "output",
-              "value": "={{ 'Cannot validate listing — ' + $json.parseErrors.join('; ') + '. Please provide: locality, building type, area (sqft), and price (BDT).' }}",
+              "value": "={{ 'Sorry, I couldn't validate your listing — ' + $json.parseErrors.join('; ') + '. Please include the property area (sqft) and price (BDT per sqft).' }}",
               "type": "string"
             }
           ]
@@ -115,14 +170,14 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        720,
-        0
+        1712,
+        48
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  AVG(CAST(price AS DECIMAL(15,2)))        AS avg_price,\n  STDDEV_POP(CAST(price AS DECIMAL(15,2))) AS std_price,\n  AVG(CAST(area  AS DECIMAL(10,2)))        AS avg_area,\n  STDDEV_POP(CAST(area  AS DECIMAL(10,2))) AS std_area,\n  COUNT(*) AS sample_size,\n  '{{ $('Parse Listing Input').item.json.listingId }}'        AS listing_id,\n  '{{ $('Parse Listing Input').item.json.localitySafe }}'     AS locality,\n  '{{ $('Parse Listing Input').item.json.buildingTypeSafe }}' AS building_type,\n  {{ $('Parse Listing Input').item.json.price }}              AS submitted_price,\n  {{ $('Parse Listing Input').item.json.area }}               AS submitted_area\nFROM properties\nWHERE {{ $('Parse Listing Input').item.json.whereClause }};",
+        "query": "SELECT\n  AVG(CAST(price AS DECIMAL(15,2)))        AS avg_price,\n  STDDEV_POP(CAST(price AS DECIMAL(15,2))) AS std_price,\n  AVG(CAST(area  AS DECIMAL(10,2)))        AS avg_area,\n  STDDEV_POP(CAST(area  AS DECIMAL(10,2))) AS std_area,\n  COUNT(*) AS sample_size,\n  '{{ $('Parse Listing Input').item.json.listingId }}' AS listing_id,\n  '{{ $('Parse Listing Input').item.json.localitySafe }}' AS locality,\n  '{{ $('Parse Listing Input').item.json.buildingTypeSafe }}' AS building_type,\n  {{ $('Parse Listing Input').item.json.price }} AS submitted_price,\n  {{ $('Parse Listing Input').item.json.area }}  AS submitted_area\nFROM properties\nWHERE {{ $('Parse Listing Input').item.json.whereClause }};",
         "options": {}
       },
       "id": "464cb0cc-d295-4e4f-aa9d-4c95649b36d9",
@@ -130,8 +185,8 @@
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.5,
       "position": [
-        720,
-        192
+        1200,
+        352
       ],
       "credentials": {
         "mySql": {
@@ -143,45 +198,45 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const row = $json;\nconst avgPrice       = Number(row.avg_price       ?? 0);\nconst stdPrice       = Number(row.std_price       ?? 0);\nconst avgArea        = Number(row.avg_area        ?? 0);\nconst stdArea        = Number(row.std_area        ?? 0);\nconst sampleSize     = Number(row.sample_size     ?? 0);\nconst submittedPrice = Number(row.submitted_price ?? 0);\nconst submittedArea  = Number(row.submitted_area  ?? 0);\n\nconst reasons = [];\nlet flagged = false;\n\n// ── no comparables ────────────────────────────────────────────────────\nif (sampleSize === 0) {\n  reasons.push('no comparable listings found for this locality/building type');\n  flagged = true;\n}\n\n// ── low sample size warning ───────────────────────────────────────────\nif (sampleSize > 0 && sampleSize < 5) {\n  reasons.push(`low comparable sample size (${sampleSize})`);\n}\n\n// ── price z-score ────────────────────────────────────────────────────\nlet zPrice = 0;\nif (sampleSize > 0) {\n  if (stdPrice === 0) {\n    reasons.push('price has zero variance across comparables — z-score indeterminate; manual review required');\n    flagged = true;\n  } else {\n    zPrice = (submittedPrice - avgPrice) / stdPrice;\n    if (Math.abs(zPrice) > 2) {\n      reasons.push(`price z-score ${zPrice.toFixed(2)} exceeds ±2 threshold`);\n      flagged = true;\n    }\n  }\n}\n\n// ── area z-score ─────────────────────────────────────────────────────\nlet zArea = 0;\nif (sampleSize > 0) {\n  if (stdArea === 0) {\n    reasons.push('area has zero variance across comparables — z-score indeterminate; manual review required');\n    flagged = true;\n  } else {\n    zArea = (submittedArea - avgArea) / stdArea;\n    if (Math.abs(zArea) > 2) {\n      reasons.push(`area z-score ${zArea.toFixed(2)} exceeds ±2 threshold`);\n      flagged = true;\n    }\n  }\n}\n\n// ── human-readable percentage deltas ─────────────────────────────────\n// These give the LLM something concrete to phrase naturally, e.g.\n// \"the price is 45 % above the neighbourhood average\".\nconst priceDeltaPct = avgPrice > 0\n  ? (((submittedPrice - avgPrice) / avgPrice) * 100).toFixed(1)\n  : null;\nconst areaDeltaPct  = avgArea  > 0\n  ? (((submittedArea  - avgArea)  / avgArea)  * 100).toFixed(1)\n  : null;\n\n// ── context block for the LLM interpretation node ────────────────────\n// Expressed entirely in plain numbers / percentages — no z-scores.\nconst llmContext = {\n  listingId:       row.listing_id    || 'unknown',\n  locality:        row.locality      || 'unknown',\n  buildingType:    row.building_type || 'unknown',\n  verdict:         flagged ? 'FLAGGED' : 'OK',\n  sampleSize,\n\n  // submitted values\n  submittedPrice,\n  submittedArea,\n\n  // market averages (null when no comparables)\n  avgPrice:       sampleSize > 0 ? avgPrice       : null,\n  avgArea:        sampleSize > 0 ? avgArea        : null,\n\n  // how far above/below the market average, as a percentage\n  // positive = above average, negative = below average\n  priceDeltaPct:  sampleSize > 0 && avgPrice > 0 ? Number(priceDeltaPct) : null,\n  areaDeltaPct:   sampleSize > 0 && avgArea  > 0 ? Number(areaDeltaPct)  : null,\n\n  // plain-English reason strings (already free of z-score language\n  // where possible; the LLM will rephrase them further)\n  reasons,\n\n  // flags to guide the LLM's tone\n  noComparables:     sampleSize === 0,\n  lowSample:         sampleSize > 0 && sampleSize < 5,\n  priceZeroVariance: sampleSize > 0 && stdPrice === 0,\n  areaZeroVariance:  sampleSize > 0 && stdArea  === 0,\n};\n\nconst verdict = flagged ? 'FLAGGED' : 'OK';\n\nreturn {\n  ...row,\n  verdict,\n  z_price:    zPrice,\n  z_area:     zArea,\n  reasons,\n  llmContext: JSON.stringify(llmContext),   // serialised for the LLM prompt\n};"
+        "jsCode": "const row = $json;\nconst avgPrice       = Number(row.avg_price       ?? 0);\nconst stdPrice       = Number(row.std_price       ?? 0);\nconst avgArea        = Number(row.avg_area        ?? 0);\nconst stdArea        = Number(row.std_area        ?? 0);\nconst sampleSize     = Number(row.sample_size     ?? 0);\nconst submittedPrice = Number(row.submitted_price ?? 0);\nconst submittedArea  = Number(row.submitted_area  ?? 0);\n\nconst reasons = [];\nlet flagged = false;\n\nif (sampleSize === 0) {\n  reasons.push('no comparable listings found for this locality/building type');\n  flagged = true;\n}\n\nif (sampleSize > 0 && sampleSize < 5) {\n  reasons.push(`low comparable sample size (${sampleSize})`);\n}\n\nlet zPrice = 0;\nif (sampleSize > 0) {\n  if (stdPrice === 0) {\n    reasons.push('price has zero variance across comparables — z-score indeterminate; manual review required');\n    flagged = true;\n  } else {\n    zPrice = (submittedPrice - avgPrice) / stdPrice;\n    if (Math.abs(zPrice) > 2) {\n      reasons.push(`price z-score ${zPrice.toFixed(2)} exceeds ±2 threshold`);\n      flagged = true;\n    }\n  }\n}\n\nlet zArea = 0;\nif (sampleSize > 0) {\n  if (stdArea === 0) {\n    reasons.push('area has zero variance across comparables — z-score indeterminate; manual review required');\n    flagged = true;\n  } else {\n    zArea = (submittedArea - avgArea) / stdArea;\n    if (Math.abs(zArea) > 2) {\n      reasons.push(`area z-score ${zArea.toFixed(2)} exceeds ±2 threshold`);\n      flagged = true;\n    }\n  }\n}\n\nconst priceDeltaPct = avgPrice > 0\n  ? (((submittedPrice - avgPrice) / avgPrice) * 100).toFixed(1)\n  : null;\nconst areaDeltaPct  = avgArea  > 0\n  ? (((submittedArea  - avgArea)  / avgArea)  * 100).toFixed(1)\n  : null;\n\nconst llmContext = {\n  listingId:       row.listing_id    || 'unknown',\n  locality:        row.locality      || 'unknown',\n  buildingType:    row.building_type || 'unknown',\n  verdict:         flagged ? 'FLAGGED' : 'OK',\n  sampleSize,\n  submittedPrice,\n  submittedArea,\n  avgPrice:       sampleSize > 0 ? avgPrice       : null,\n  avgArea:        sampleSize > 0 ? avgArea        : null,\n  priceDeltaPct:  sampleSize > 0 && avgPrice > 0 ? Number(priceDeltaPct) : null,\n  areaDeltaPct:   sampleSize > 0 && avgArea  > 0 ? Number(areaDeltaPct)  : null,\n  reasons,\n  noComparables:     sampleSize === 0,\n  lowSample:         sampleSize > 0 && sampleSize < 5,\n  priceZeroVariance: sampleSize > 0 && stdPrice === 0,\n  areaZeroVariance:  sampleSize > 0 && stdArea  === 0,\n};\n\nconst verdict = flagged ? 'FLAGGED' : 'OK';\n\nreturn {\n  ...row,\n  verdict,\n  z_price:    zPrice,\n  z_area:     zArea,\n  reasons,\n  llmContext: JSON.stringify(llmContext),\n};"
       },
       "id": "211bcfce-5a73-48a9-bf01-5f0cb914776e",
       "name": "Compute Verdict",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        944,
-        192
+        1424,
+        352
       ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ \n'You are a helpful Bangladeshi real estate advisor. ' +\n'A listing validation system has analysed a property listing and produced the structured result below. ' +\n'Your job is to rewrite this result as a SHORT, friendly, plain-English explanation (3–6 sentences) for someone who knows nothing about statistics. ' +\n'Rules:\\n' +\n'- NEVER mention z-scores, standard deviations, or any statistical jargon.\\n' +\n'- DO use clear comparisons like \"X% above the neighbourhood average\", \"about twice the typical size\", or \"comparable to similar flats nearby\".\\n' +\n'- If the verdict is OK, be reassuring but factual.\\n' +\n'- If the verdict is FLAGGED, explain simply why it looks unusual and suggest the buyer double-check before proceeding.\\n' +\n'- If there are no comparables, say so plainly (e.g. \"We don\\'t have enough similar listings in this area to compare against yet.\").\\n' +\n'- If the sample is small, add a gentle caveat.\\n' +\n'- End with one practical next-step recommendation.\\n\\n' +\n'Structured result (JSON):\\n' +\n$json.llmContext\n}}"
+        "text": "={{ \"You are a helpful Bangladeshi real estate advisor.\\nA listing validation system has analysed a property listing and produced the structured result below.\\nYour job is to rewrite this result as a SHORT, friendly, plain-English explanation (3–6 sentences) for someone who knows nothing about statistics.\\n\\nRules:\\n- NEVER mention z-scores, standard deviations, or any statistical jargon.\\n- DO use clear comparisons like 'X% above the neighbourhood average', 'about twice the typical size', or 'comparable to similar flats nearby'.\\n- If the verdict is OK, be reassuring but factual.\\n- If the verdict is FLAGGED, explain simply why it looks unusual and suggest the buyer double-check before proceeding.\\n- If there are no comparables, say so plainly (e.g. 'We don't have enough similar listings in this area to compare against yet.').\\n- If the sample is small, add a gentle caveat.\\n- End with one practical next-step recommendation.\\n\\nStructured result (JSON):\\n\" + $json.llmContext }}"
       },
       "id": "a1b2c3d4-e5f6-7890-ab12-cd34ef567890",
       "name": "Interpret Verdict",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.5,
       "position": [
-        1152,
-        192
+        1648,
+        352
       ]
     },
     {
       "parameters": {
         "modelName": "models/gemini-3.1-flash-lite-preview",
         "options": {
-          "temperature": 0.1
+          "temperature": 0.4
         }
       },
       "id": "b2c3d4e5-f6a7-8901-bc23-de45fg678901",
       "name": "Gemini Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.1,
+      "typeVersion": 1,
       "position": [
-        1152,
-        384
+        1728,
+        576
       ],
       "credentials": {
         "googlePalmApi": {
@@ -209,8 +264,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1440,
-        32
+        2000,
+        192
       ]
     }
   ],
@@ -231,7 +286,7 @@
       "main": [
         [
           {
-            "node": "Parse Listing Input",
+            "node": "Extract Listing Fields",
             "type": "main",
             "index": 0
           }
@@ -239,6 +294,28 @@
       ]
     },
     "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Listing Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Extract Listing Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Listing Fields": {
       "main": [
         [
           {
@@ -322,6 +399,17 @@
         ]
       ]
     },
+    "Gemini Extract Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Listing Fields",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Gemini Chat Model": {
       "ai_languageModel": [
         [
@@ -339,7 +427,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "30718753-f4ff-4e5d-98d5-c12a6b326305",
+  "versionId": "1427b816-29c1-4116-b086-7588a8066105",
   "meta": {
     "instanceId": "a9fbff149e977871da7924eb057ea5907c048999d42fee0e9b64549f16158abc"
   },
