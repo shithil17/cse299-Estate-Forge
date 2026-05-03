@@ -1,0 +1,31 @@
+[
+  {
+    "headers": {
+      "host": "host.docker.internal:5678",
+      "accept": "*/*",
+      "content-type": "application/json",
+      "content-length": "331"
+    },
+    "params": {},
+    "query": {},
+    "body": {
+      "job_id": "JOB-B0F217336E",
+      "product_id": "PROD-38D3FFB6",
+      "user_id": "U10000000009",
+      "company_id": "C10000000010",
+      "title": "Test",
+      "category": "Raw Material",
+      "size": null,
+      "description": "test dummy ",
+      "price": "abcd",
+      "price_type": "Fixed",
+      "unit": "Sq.ft",
+      "status": "Available",
+      "images": [
+        "assets/images/C10000000010/PROD-38D3FFB6/image1.png"
+      ]
+    },
+    "webhookUrl": "http://localhost:5678/webhook-test/smart-verify",
+    "executionMode": "test"
+  }
+]

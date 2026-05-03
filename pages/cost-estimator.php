@@ -219,7 +219,7 @@ $sid = $_GET['sid'] ?? "";
                      * REPLACE THE URL BELOW with your actual n8n Production Webhook URL 
                      * Ensure your n8n Webhook node is set to 'POST' and 'JSON'
                      */
-                    const WEBHOOK_URL = 'https://n8n.yourdomain.com/webhook/rems-cost-estimator';
+                    const WEBHOOK_URL = 'http://localhost:5678/webhook-test/rems_inquire';
 
                     const response = await fetch(WEBHOOK_URL, {
                         method: 'POST',
