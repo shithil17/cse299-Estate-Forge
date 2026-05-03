@@ -17,7 +17,7 @@ $firstName = "";
 $companyData = null;
 $existingProducts = [];
 $canManage = false;
-$successMsg = ""; // Can be passed via session if redirecting from upload
+$successMsg = "";
 $errorMsg = "";
 
 // Fetch UserID and update lastpage
@@ -58,6 +58,79 @@ if ($uid) {
     if ($companyData) {
         $canManage = ($companyData['Permissions'] === 'MANAGE');
         $cid = $companyData['CompanyID'];
+
+        // --- PUBLISH PRODUCT LOGIC ---
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['publish_product']) && $canManage) {
+            $pTitle = $_POST['p_title'];
+            $pCat = $_POST['p_cat'];
+            $pSize = !empty($_POST['p_size']) ? intval($_POST['p_size']) : null;
+            $pDesc = $_POST['p_desc'];
+            $pPrice = $_POST['p_price'] ?? null;
+            $pUnit = $_POST['p_unit'] ?? null;
+            $pPriceType = !empty($_POST['p_price_type']) ? $_POST['p_price_type'] : 'Fixed';
+            $pStatus = $_POST['p_status'] ?? 'Available';
+
+            // Generate ProductID
+            $pID = "PROD-" . strtoupper(substr(md5(uniqid()), 0, 8));
+
+            // Image Handling
+            $targetDir = "../assets/images/" . $cid . "/" . $pID . "/";
+            if (!file_exists($targetDir)) {
+                mkdir($targetDir, 0777, true);
+            }
+
+            $imagePaths = [null, null, null, null, null];
+            $uploadedCount = 0;
+
+            for ($i = 1; $i <= 5; $i++) {
+                if (!empty($_FILES["img$i"]["name"])) {
+                    $ext = pathinfo($_FILES["img$i"]["name"], PATHINFO_EXTENSION);
+                    $fileName = "image$i." . $ext;
+                    $targetFilePath = $targetDir . $fileName;
+
+                    if (move_uploaded_file($_FILES["img$i"]["tmp_name"], $targetFilePath)) {
+                        $imagePaths[$i - 1] = "assets/images/" . $cid . "/" . $pID . "/" . $fileName;
+                        $uploadedCount++;
+                    }
+                }
+            }
+
+            if ($uploadedCount === 0) {
+                $errorMsg = "At least one image is required.";
+            } else {
+                // Updated SQL to match new schema: Added ProductSize and separated PriceUnit
+                $sql = "INSERT INTO products (ProductID, UserID, CompanyID, ProductTitle, ProductCategory, ProductSize, ProductDescription, 
+                        ProductImage1, ProductImage2, ProductImage3, ProductImage4, ProductImage5, ProductPrice, PriceType, PriceUnit, ProductStatus) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                
+                $insStmt = $conn->prepare($sql);
+                $insStmt->bind_param(
+                    "sssssissssssssss",
+                    $pID,
+                    $uid,
+                    $cid,
+                    $pTitle,
+                    $pCat,
+                    $pSize,
+                    $pDesc,
+                    $imagePaths[0],
+                    $imagePaths[1],
+                    $imagePaths[2],
+                    $imagePaths[3],
+                    $imagePaths[4],
+                    $pPrice,
+                    $pPriceType,
+                    $pUnit,
+                    $pStatus
+                );
+
+                if ($insStmt->execute()) {
+                    $successMsg = "Listing published successfully!";
+                } else {
+                    $errorMsg = "Database error: " . $conn->error;
+                }
+            }
+        }
 
         // Fetch Products for this company
         $pStmt = $conn->prepare("SELECT * FROM products WHERE CompanyID = ? ORDER BY ProductID DESC");
@@ -223,11 +296,89 @@ function buildUrl($url, $sid)
                     <p class="text-sm text-on-surface-variant mb-6 leading-relaxed">List a new property, land, or
                         material with high-res images and specific pricing units.</p>
 
-                    <a href="<?= $canManage ? buildUrl('providers-upload.php', $sid) : '#' ?>"
-                        class="inline-flex items-center gap-2 font-bold text-secondary <?= !$canManage ? 'opacity-30 cursor-not-allowed pointer-events-none' : '' ?>">
+                    <button onclick="toggleSection('publish-sec')"
+                        class="flex items-center gap-2 font-bold text-secondary <?= !$canManage ? 'opacity-30 cursor-not-allowed' : '' ?>"
+                        <?= !$canManage ? 'disabled' : '' ?>>
                         <?= $canManage ? 'Get Started' : 'Manage Permission Required' ?>
-                        <span class="material-symbols-outlined arrow-icon transition-transform">arrow_forward</span>
-                    </a>
+                        <span class="material-symbols-outlined arrow-icon transition-transform">expand_more</span>
+                    </button>
+
+                    <div id="publish-sec" class="expand-content">
+                        <form method="POST" enctype="multipart/form-data"
+                            class="space-y-5 pt-6 border-t border-outline-variant/20">
+                            <div class="space-y-3">
+                                <input type="text" name="p_title" required placeholder="Listing Title"
+                                    class="w-full rounded-xl border-outline-variant bg-surface-low text-sm">
+                                
+                                <div class="flex gap-2">
+                                    <select name="p_cat" required
+                                        class="flex-1 rounded-xl border-outline-variant bg-surface-low text-sm font-medium">
+                                        <option value="" disabled selected>Category</option>
+                                        <option>Property</option>
+                                        <option>Raw Material</option>
+                                        <option>Rental</option>
+                                        <option>Services</option>
+                                        <option>Land</option>
+                                    </select>
+                                    <input type="number" name="p_size" placeholder="Size (e.g. 1200)"
+                                        class="w-1/3 rounded-xl border-outline-variant bg-surface-low text-sm">
+                                </div>
+
+                                <textarea name="p_desc" rows="3" required placeholder="Describe the listing..."
+                                    class="w-full rounded-xl border-outline-variant bg-surface-low text-sm"></textarea>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="col-span-2 flex gap-2">
+                                    <input type="text" name="p_price" placeholder="Price"
+                                        class="flex-1 rounded-xl border-outline-variant bg-surface-low text-sm">
+                                    <select name="p_unit"
+                                        class="w-1/3 rounded-xl border-outline-variant bg-surface-low text-xs font-bold">
+                                        <option value="">No Unit</option>
+                                        <option value="Sq.ft">Sq.ft</option>
+                                        <option value="Acre">Acre</option>
+                                        <option value="Bigha">Bigha</option>
+                                    </select>
+                                </div>
+                                <select name="p_price_type"
+                                    class="rounded-xl border-outline-variant bg-surface-low text-[11px] font-bold">
+                                    <option value="Fixed">Fixed</option>
+                                    <option value="Negotiable">Negotiable</option>
+                                </select>
+                                <select name="p_status"
+                                    class="rounded-xl border-outline-variant bg-surface-low text-[11px] font-bold">
+                                    <option value="Available">Available</option>
+                                    <option value="Ongoing">Ongoing</option>
+                                    <option value="Upcoming">Upcoming</option>
+                                    <option value="Sold">Sold</option>
+                                </select>
+                            </div>
+
+                            <div class="space-y-3">
+                                <label
+                                    class="text-[10px] font-black uppercase text-on-surface-variant tracking-widest">Post
+                                    Images (Up to 5)</label>
+                                <div class="grid grid-cols-5 gap-2">
+                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                        <label
+                                            class="relative flex flex-col items-center justify-center aspect-square bg-surface-high rounded-xl border-2 border-dashed border-outline-variant hover:border-secondary cursor-pointer transition-all overflow-hidden group/img">
+                                            <span
+                                                class="material-symbols-outlined text-outline-variant text-lg group-hover/img:text-secondary">add_a_photo</span>
+                                            <input type="file" name="img<?= $i ?>" class="hidden" accept="image/*"
+                                                onchange="preview(this, <?= $i ?>)">
+                                            <img id="prev<?= $i ?>"
+                                                class="absolute inset-0 w-full h-full object-cover hidden">
+                                        </label>
+                                    <?php endfor; ?>
+                                </div>
+                            </div>
+
+                            <button type="submit" name="publish_product"
+                                class="w-full rounded-2xl bg-gradient-to-r from-secondary to-tertiary py-4 text-white text-xs font-black uppercase tracking-widest shadow-lg hover:brightness-110 transition-all">
+                                Finalize Listing
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- Card 2: Existing List -->
@@ -326,9 +477,29 @@ function buildUrl($url, $sid)
             sec.classList.toggle('active');
 
             const btn = sec.previousElementSibling;
-            const icon = btn.querySelector('.material-symbols-outlined.transition-transform');
+            const icon = btn.querySelector('.arrow-icon');
             if (icon) icon.style.transform = !isActive ? 'rotate(180deg)' : 'rotate(0deg)';
         }
+
+        function preview(input, n) {
+            const img = document.getElementById('prev' + n);
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    img.src = e.target.result;
+                    img.classList.remove('hidden');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        document.querySelector('form').addEventListener('submit', function (e) {
+            const img1 = document.querySelector('input[name="img1"]').files.length;
+            if (img1 === 0) {
+                alert("A primary image (Slot 1) is required to publish.");
+                e.preventDefault();
+            }
+        });
     </script>
 </body>
 
