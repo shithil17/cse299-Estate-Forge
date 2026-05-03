@@ -1,0 +1,346 @@
+{
+  "name": "Cost-Update-Estimate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "costestrems",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fda4fd6a-dcb0-4ce6-872a-64273393ef62",
+      "name": "Webhook",
+      "webhookId": "67763bad-1c40-4528-ba6d-520334f66df8"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1584,
+        32
+      ],
+      "id": "e9ba7aa3-f3b0-47a0-a5bd-2f70dca76752",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\nlet sqft = Number(input.landSize);\n\nif (input.unit === \"Katha\") {\n  sqft *= 720;\n}\nif (input.unit === \"Bigha\") {\n  sqft *= 14400;\n}\n\nreturn [{\n  json: {\n    ...input,\n    totalSqft: sqft\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "25ab8537-38d2-4bda-a8eb-2d74ba256bcf",
+      "name": "Normalize Data"
+    },
+    {
+      "parameters": {
+        "url": "https://constructionmart.com.bd/ads/rod/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        -32
+      ],
+      "id": "98591459-047b-413d-9870-e910f9e1b736",
+      "name": "HTTP Request [ROD]"
+    },
+    {
+      "parameters": {
+        "url": "https://constructionmart.com.bd/ads/cement/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        160
+      ],
+      "id": "0867946d-0e9c-4b83-abbf-e145b1b8c526",
+      "name": "HTTP Request [Cement]"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $input.first().json.body || \"\";\n\nconst regex = /<h3[^>]*>(.*?)<\\/h3>[\\s\\S]*?৳\\s*([\\d,]+)[\\s\\S]*?(Ton|ton)/gi;\n\nconst items = [];\nlet match;\n\nwhile ((match = regex.exec(html)) !== null) {\n  const brand = match[1].replace(/<[^>]+>/g, \"\").trim();\n  const price = Number(match[2].replace(/,/g, \"\"));\n  const unit = match[3];\n\n  if (!brand || !price) continue;\n  if (brand.toLowerCase().includes(\"call for price\")) continue;\n\n  items.push({\n    brand,\n    price,\n    unit\n  });\n}\n\nreturn [{\n  json: {\n    rodAds: items\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        -32
+      ],
+      "id": "853e8c9e-c86e-418c-ae2e-58027b422b3f",
+      "name": "JS Extract ROD Price"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        928,
+        48
+      ],
+      "id": "8f6ef9d4-338a-4c30-938e-9ff19cd51cdc",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nconst totalArea = d.totalSqft * Number(d.floors);\n\n// Basic assumptions\nconst bricks = Math.round(totalArea * 8);\nconst cementBags = Math.round(totalArea * 0.4);\nconst rodTons = Number((totalArea * 0.004).toFixed(2));\n\n// Cost calculations\nconst rodCost = rodTons * d.price; // rod branch price\nconst cementCost = cementBags * d.price_1; // cement branch price\n\nreturn [{\n  json: {\n    ...d,\n    totalArea,\n    bricks,\n    cementBags,\n    rodTons,\n    rodCost,\n    cementCost\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        -16
+      ],
+      "id": "4de86718-318c-4e1f-8ffa-6400a68d4773",
+      "name": "Calculations/Units"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a construction cost estimation API engine for Bangladesh.\n\nRULES (STRICT):\n- DONT ask questions\n- NEVER request missing data\n- ALWAYS assume all inputs are provided\n- ALWAYS return final result only\n-Return ONLY raw JSON. Do NOT use markdown. Do NOT use ```json.\n\nINPUT:\nLocation: {{location}}\nDescription: {{description}}\nTotal Area: {{totalSqft}}\nFloors: {{floors}}\nRod Ads: {{rodAds}}\nCement Ads: {{cementAds}}\n\nTASK:\n- Select best rod and cement brands from ads\n- Ignore \"call for price\"\n- Estimate brick price for Bangladesh market\n- Calculate materials and total cost\n- Based on the area calculate proper price.\n- Include the labor fees as well and add those to the total cost by Labour cost per sqft*total sqft\n- Also make sure to get how much rod cement bricks approximately needed based on the number of floors and description\n-Do most accurate maths and give total cost\n\nOUTPUT FORMAT (IMPORTANT):\nReturn ONLY valid JSON:\n{\n  \"rod\": {\"brand\":\"\", \"price\":0, \"unit\":\"\"},\n  \"cement\": {\"brand\":\"\", \"price\":0, \"unit\":\"\"},\n  \"brickPrice\": 0,\n  \"quantities\": {\n    \"bricks\": 0,\n    \"cementBags\": 0,\n    \"rodTons\": 0\n  },\n  \"totalCost\": 0,\n  \"notes\": \"\"\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1120,
+        288
+      ],
+      "id": "597b422d-8a3d-4485-b92d-eee213c126f1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        944,
+        368
+      ],
+      "id": "5e074afc-d24d-4e77-adef-f27edc667700",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ZM5IbHEBsGspONns",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $input.first().json.body || \"\";\n\nconst regex = /<h3[^>]*>(.*?)<\\/h3>[\\s\\S]*?৳\\s*([\\d,]+)[\\s\\S]*?(50\\s*KG|Bag)/gi;\n\nconst items = [];\nlet match;\n\nwhile ((match = regex.exec(html)) !== null) {\n  const brand = match[1].replace(/<[^>]+>/g, \"\").trim();\n  const price = Number(match[2].replace(/,/g, \"\"));\n  const unit = match[3];\n\n  if (!brand || !price) continue;\n  if (brand.toLowerCase().includes(\"call for price\")) continue;\n\n  items.push({\n    brand,\n    price,\n    unit\n  });\n}\n\nreturn [{\n  json: {\n    cementAds: items\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        160
+      ],
+      "id": "e5edf526-c1a3-41bb-bed8-8eee8e5ce3d5",
+      "name": "JS Extract Cement"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1136,
+        48
+      ],
+      "id": "7c7cf4c6-2929-4289-b51e-af19c2e6ead6",
+      "name": "Wait",
+      "webhookId": "6e6a831d-98d7-4bc2-9995-8fc15d271dc1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawOutput = $json.output;\n\ntry {\n  // This converts the string \"{\\\"rod\\\": ...}\" into a real JavaScript object\n  const parsedOutput = JSON.parse(rawOutput);\n  return {\n    estimate: parsedOutput\n  };\n} catch (e) {\n  // If parsing fails, return the raw text so the workflow doesn't crash\n  return {\n    estimate: rawOutput\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        224
+      ],
+      "id": "7a2a33b0-b0a7-43f4-b3cd-6ec725d9618d",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Data": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request [ROD]",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request [Cement]",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request [ROD]": {
+      "main": [
+        [
+          {
+            "node": "JS Extract ROD Price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JS Extract ROD Price": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request [Cement]": {
+      "main": [
+        [
+          {
+            "node": "JS Extract Cement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculations/Units": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JS Extract Cement": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Calculations/Units",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6a7edc82-11d6-409d-aa69-b52cae28ed13",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9be77d0e01ed0ac753d07f820a89c82c42e7ca4aa4b5441b03a0643259c7f6c2"
+  },
+  "id": "wnFDEX8Kw4i7UTSF",
+  "tags": []
+}

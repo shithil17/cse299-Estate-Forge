@@ -19,7 +19,7 @@ $canManage = false;
 $successMsg = "";
 $errorMsg = "";
 
-// Fetch UserID and update lastpage
+// Fetch UserID
 $stmt = $conn->prepare("SELECT UserID FROM session WHERE SessionID = ?");
 $stmt->bind_param("s", $sid);
 $stmt->execute();
@@ -70,8 +70,8 @@ if ($uid) {
             $pUnit = $_POST['p_unit'] ?? null;
             $pPriceType = !empty($_POST['p_price_type']) ? $_POST['p_price_type'] : 'Fixed';
             
-            // Defaulting to 'Pending' so the n8n Smart Verify system can process it
-            $pStatus = 'Pending'; 
+            // New Input: Product Status
+            $pStatus = $_POST['p_status'] ?? 'Available'; 
 
             $pID = "PROD-" . strtoupper(substr(md5(uniqid()), 0, 8));
 
@@ -91,7 +91,6 @@ if ($uid) {
                     $targetFilePath = $targetDir . $fileName;
 
                     if (move_uploaded_file($_FILES["img$i"]["tmp_name"], $targetFilePath)) {
-                        // Storing path relative to root for easier frontend access
                         $imagePaths[$i - 1] = "assets/images/" . $cid . "/" . $pID . "/" . $fileName;
                         $uploadedCount++;
                     }
@@ -114,15 +113,15 @@ if ($uid) {
                 );
 
                 if ($insStmt->execute()) {
-                    // --- TRIGGER N8N SMART VERIFY WORKFLOW ---
-                    $n8nWebhookUrl = 'http://localhost:5678/webhook-test/smart-verify'; // Update with your Docker n8n URL
+                    // --- TRIGGER N8N SMART VERIFY ---
+                    $n8nWebhookUrl = 'http://host.docker.internal:5678/webhook-test/smart-verify'; 
                     $payload = [
                         'product_id' => $pID,
                         'title' => $pTitle,
                         'category' => $pCat,
                         'description' => $pDesc,
                         'price' => $pPrice,
-                        'price_unit' => $pUnit,
+                        'status' => $pStatus,
                         'images' => array_filter($imagePaths)
                     ];
 
@@ -131,7 +130,7 @@ if ($uid) {
                     curl_setopt($ch, CURLOPT_POST, true);
                     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
                     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Don't hang the UI if n8n is slow
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 5); 
                     curl_exec($ch);
                     curl_close($ch);
 
@@ -174,22 +173,17 @@ function buildUrl($url, $sid) {
             },
         };
     </script>
-    <style>
-        .glass-nav { background: rgba(252, 248, 255, 0.8); backdrop-filter: blur(12px); }
-        .ai-badge { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-    </style>
 </head>
 
 <body class="bg-surface text-on-surface font-[Inter]">
-    <header class="fixed top-0 z-50 w-full glass-nav shadow-sm">
+    <header class="fixed top-0 z-50 w-full bg-white/80 backdrop-blur-xl shadow-sm">
         <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
             <a href="<?= buildUrl('providers.php', $sid) ?>" class="flex items-center gap-2 text-primary font-bold">
                 <span class="material-symbols-outlined">arrow_back</span>
-                <span>Back to Dashboard</span>
+                <span>Back</span>
             </a>
             <div class="flex items-center gap-2">
-                <span class="ai-badge flex h-2 w-2 rounded-full bg-secondary"></span>
+                <span class="flex h-2 w-2 rounded-full bg-secondary animate-pulse"></span>
                 <span class="text-[10px] font-black uppercase tracking-widest text-secondary">AI Agent Active</span>
             </div>
         </div>
@@ -197,82 +191,68 @@ function buildUrl($url, $sid) {
 
     <main class="pt-24 pb-16">
         <div class="mx-auto max-w-3xl px-6">
-
             <?php if ($successMsg): ?>
-                <div class="mb-6 p-4 bg-emerald-100 text-emerald-800 rounded-2xl border border-emerald-200 text-sm font-bold flex items-center justify-between">
-                    <div class="flex items-center gap-2"><span class="material-symbols-outlined">verified</span> <?= $successMsg ?></div>
-                    <a href="<?= buildUrl('providers.php', $sid) ?>" class="underline">View Inventory</a>
+                <div class="mb-6 p-4 bg-emerald-100 text-emerald-800 rounded-2xl border border-emerald-200 text-sm font-bold">
+                    <?= $successMsg ?>
                 </div>
             <?php endif; ?>
             
-            <?php if ($errorMsg): ?>
-                <div class="mb-6 p-4 bg-red-100 text-red-800 rounded-2xl border border-red-200 text-sm font-bold flex items-center gap-2">
-                    <span class="material-symbols-outlined">report</span> <?= $errorMsg ?>
-                </div>
-            <?php endif; ?>
-
             <div class="rounded-[2.5rem] bg-white p-10 shadow-sm border border-outline-variant/30">
-                <h3 class="text-3xl font-black text-primary tracking-tighter mb-2">New Submission</h3>
-                <p class="text-sm text-slate-500 mb-8">Our AI agent will review your submission for quality, pricing accuracy, and relevance.</p>
+                <h3 class="text-3xl font-black text-primary tracking-tighter mb-6">New Submission</h3>
 
                 <form id="uploadForm" method="POST" enctype="multipart/form-data" class="space-y-6">
-                    <div class="space-y-4">
-                        <label class="block">
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="col-span-2">
                             <span class="text-[11px] font-bold uppercase ml-1 text-primary">Listing Title</span>
-                            <input type="text" name="p_title" id="p_title" required placeholder="e.g., Luxury 3-Bedroom Apartment in Bashundhara"
-                                class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3 focus:ring-secondary focus:border-secondary transition-all">
+                            <input type="text" name="p_title" id="p_title" required class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3">
                         </label>
                         
-                        <div class="flex gap-4">
-                            <div class="flex-1">
-                                <span class="text-[11px] font-bold uppercase ml-1 text-primary">Category</span>
-                                <select name="p_cat" id="p_cat" required class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3">
-                                    <option value="" disabled selected>Select Type</option>
-                                    <option>Property</option>
-                                    <option>Raw Material</option>
-                                    <option>Land</option>
-                                </select>
-                            </div>
-                            <div class="w-1/3">
-                                <span class="text-[11px] font-bold uppercase ml-1 text-primary">Size</span>
-                                <input type="number" name="p_size" placeholder="Total Units" class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3">
-                            </div>
+                        <div>
+                            <span class="text-[11px] font-bold uppercase ml-1 text-primary">Category</span>
+                            <select name="p_cat" required class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3">
+                                <option>Property</option>
+                                <option>Raw Material</option>
+                                <option>Land</option>
+                            </select>
                         </div>
 
-                        <div class="relative">
-                            <div class="flex justify-between items-end mb-1">
-                                <span class="text-[11px] font-bold uppercase ml-1 text-primary">Description</span>
-                                <div id="ai-status" class="text-[9px] font-bold text-secondary hidden italic">AI is drafting...</div>
-                            </div>
-                            <textarea name="p_desc" id="p_desc" rows="6" required placeholder="Describe the item..."
-                                class="w-full rounded-xl border-outline-variant bg-surface-low text-sm p-3 focus:ring-secondary focus:border-secondary transition-all"></textarea>
-                            
-                            <!-- AI Suggestion Box -->
-                            <div id="suggestion-container" class="hidden mt-2 p-4 bg-secondary/5 border border-secondary/20 rounded-xl">
-                                <p class="text-[10px] font-black text-secondary uppercase mb-2">AI Suggestion:</p>
-                                <p id="suggestion-text" class="text-xs text-slate-600 leading-relaxed mb-3 italic"></p>
-                                <button type="button" id="apply-ai" class="text-[10px] font-bold bg-secondary text-white px-3 py-1.5 rounded-lg hover:bg-primary transition-all">Apply Description</button>
-                            </div>
+                        <div>
+                            <span class="text-[11px] font-bold uppercase ml-1 text-primary">Current Status</span>
+                            <select name="p_status" required class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3 font-bold text-secondary">
+                                <option value="Available">Available</option>
+                                <option value="Ongoing">Ongoing</option>
+                                <option value="Upcoming">Upcoming</option>
+                                <option value="Not Available">Not Available</option>
+                                <option value="Sold">Sold</option>
+                            </select>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-outline-variant/20">
-                        <div class="col-span-2 flex gap-4">
-                            <div class="flex-1">
-                                <span class="text-[11px] font-bold uppercase ml-1 text-primary">Price</span>
-                                <input type="text" name="p_price" placeholder="Amount" class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3">
-                            </div>
-                            <div class="w-1/3">
-                                <span class="text-[11px] font-bold uppercase ml-1 text-primary">Unit</span>
-                                <select name="p_unit" class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-xs font-bold p-3">
-                                    <option value="">None</option>
-                                    <option value="Sq.ft">Sq.ft</option>
-                                    <option value="Acre">Acre</option>
-                                </select>
-                            </div>
+                    <div class="relative">
+                        <span class="text-[11px] font-bold uppercase ml-1 text-primary">Description</span>
+                        <textarea name="p_desc" id="p_desc" rows="5" required class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3"></textarea>
+                        <div id="suggestion-container" class="hidden mt-2 p-4 bg-secondary/5 border border-secondary/20 rounded-xl">
+                            <p id="suggestion-text" class="text-xs text-slate-600 italic mb-2"></p>
+                            <button type="button" id="apply-ai" class="text-[10px] font-bold bg-secondary text-white px-3 py-1 rounded-lg">Apply AI Suggestion</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="col-span-1">
+                            <span class="text-[11px] font-bold uppercase ml-1 text-primary">Price</span>
+                            <input type="text" name="p_price" class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3">
                         </div>
                         <div>
-                            <span class="text-[11px] font-bold uppercase ml-1 text-primary">Pricing Model</span>
+                            <span class="text-[11px] font-bold uppercase ml-1 text-primary">Unit</span>
+                            <select name="p_unit" class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3">
+                                <option value="">None</option>
+                                <option value="Sq.ft">Sq.ft</option>
+                                <option value="Acre">Acre</option>
+                                <option value="Bigha">Bigha</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span class="text-[11px] font-bold uppercase ml-1 text-primary">Price Type</span>
                             <select name="p_price_type" class="w-full mt-1 rounded-xl border-outline-variant bg-surface-low text-sm p-3">
                                 <option value="Fixed">Fixed</option>
                                 <option value="Negotiable">Negotiable</option>
@@ -281,11 +261,11 @@ function buildUrl($url, $sid) {
                     </div>
 
                     <div class="space-y-3">
-                        <span class="text-[11px] font-black uppercase text-primary tracking-widest">Visual Assets (Primary first)</span>
+                        <span class="text-[11px] font-black uppercase text-primary tracking-widest">Property Photos</span>
                         <div class="grid grid-cols-5 gap-3">
                             <?php for ($i = 1; $i <= 5; $i++): ?>
-                                <label class="relative flex flex-col items-center justify-center aspect-square bg-surface-low rounded-2xl border-2 border-dashed border-outline-variant hover:border-secondary cursor-pointer transition-all overflow-hidden group">
-                                    <span class="material-symbols-outlined text-slate-400 group-hover:text-secondary">add_a_photo</span>
+                                <label class="relative flex flex-col items-center justify-center aspect-square bg-surface-low rounded-2xl border-2 border-dashed border-outline-variant cursor-pointer overflow-hidden">
+                                    <span class="material-symbols-outlined text-slate-400">add_a_photo</span>
                                     <input type="file" name="img<?= $i ?>" class="hidden" accept="image/*" onchange="preview(this, <?= $i ?>)">
                                     <img id="prev<?= $i ?>" class="absolute inset-0 w-full h-full object-cover hidden">
                                 </label>
@@ -293,10 +273,8 @@ function buildUrl($url, $sid) {
                         </div>
                     </div>
 
-                    <button type="submit" name="publish_product"
-                        class="w-full mt-6 rounded-2xl bg-primary py-4 text-white text-xs font-black uppercase tracking-widest shadow-xl hover:bg-secondary transition-all flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined">rocket_launch</span>
-                        Submit for Verification
+                    <button type="submit" name="publish_product" class="w-full rounded-2xl bg-primary py-4 text-white text-xs font-black uppercase tracking-widest shadow-xl hover:bg-secondary transition-all">
+                        Submit & Smart Verify
                     </button>
                 </form>
             </div>
@@ -304,7 +282,6 @@ function buildUrl($url, $sid) {
     </main>
 
     <script>
-        // --- PREVIEW IMAGES ---
         function preview(input, n) {
             const img = document.getElementById('prev' + n);
             if (input.files && input.files[0]) {
@@ -317,60 +294,30 @@ function buildUrl($url, $sid) {
             }
         }
 
-        // --- AI SUGGESTION LOGIC ---
         let debounceTimer;
-        const titleInput = document.getElementById('p_title');
-        const descInput = document.getElementById('p_desc');
-        const suggestionBox = document.getElementById('suggestion-container');
-        const suggestionText = document.getElementById('suggestion-text');
-        const aiStatus = document.getElementById('ai-status');
+        document.getElementById('p_desc').addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                const title = document.getElementById('p_title').value;
+                const text = document.getElementById('p_desc').value;
+                if (title.length < 5) return;
 
-        async function getAISuggestion() {
-            const title = titleInput.value;
-            const currentDesc = descInput.value;
-
-            if (title.length < 10) return;
-
-            aiStatus.classList.remove('hidden');
-
-            try {
-                // Point to your n8n Docker Webhook for suggestions
                 const response = await fetch('http://localhost:5678/webhook/get-suggestion', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: title, current_desc: currentDesc })
+                    body: JSON.stringify({ title, currentText: text })
                 });
                 const data = await response.json();
-                
                 if(data.suggestion) {
-                    suggestionText.innerText = data.suggestion;
-                    suggestionBox.classList.remove('hidden');
+                    document.getElementById('suggestion-text').innerText = data.suggestion;
+                    document.getElementById('suggestion-container').classList.remove('hidden');
                 }
-            } catch (err) {
-                console.error("n8n Assistant unreachable");
-            } finally {
-                aiStatus.classList.add('hidden');
-            }
-        }
-
-        descInput.addEventListener('input', () => {
-            clearTimeout(debounceTimer);
-            // Wait for 2 seconds of inactivity before asking AI to avoid excessive API calls
-            debounceTimer = setTimeout(getAISuggestion, 2000);
+            }, 1500);
         });
 
         document.getElementById('apply-ai').addEventListener('click', () => {
-            descInput.value = suggestionText.innerText;
-            suggestionBox.classList.add('hidden');
-        });
-
-        // --- FORM VALIDATION ---
-        document.getElementById('uploadForm').addEventListener('submit', function (e) {
-            const img1 = document.querySelector('input[name="img1"]').files.length;
-            if (img1 === 0) {
-                alert("Please provide at least a primary image.");
-                e.preventDefault();
-            }
+            document.getElementById('p_desc').value = document.getElementById('suggestion-text').innerText;
+            document.getElementById('suggestion-container').classList.add('hidden');
         });
     </script>
 </body>
