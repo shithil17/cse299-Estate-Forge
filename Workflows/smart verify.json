@@ -1,0 +1,337 @@
+{
+  "name": "smart verify",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Act as a Real Estate Quality Auditor. Review the following: Title: {{ $json.title }}, Description: {{ $json.description }}, Price: {{ $json.price }}.\n\nCheck if the description matches the title and item type.\n\nFlag any grammatical errors.\n\nEvaluate if the price is realistic for a {{ $json.item_type }}.\nReturn ONLY a JSON object: { 'status': 'PASS' or 'FAIL', 'reason': 'detailed explanation' }",
+        "options": {
+          "systemMessage": "=You are a Real Estate Quality Auditor. Review the following input:\n\nGrammar: Is the description professional?\n\nRelevance: Does the description match the Title and Item Type?\n\nPrice Check: Is the price realistic for a [Item Type]?\n\nImage Check: Verify if the attached image is an appropriate property photo or raw material or probably has text that is relevant to the Title of the product\nOutput: You MUST return a JSON object: {\"decision\": \"APPROVE\" or \"REJECT\", \"reason\": \"Detailed explanation\", \"suggested_fix\": \"How to improve it\"}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "1c62cfc0-91f9-4713-841f-3a9c74656de1",
+      "name": "AI Agent",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "smart-verify",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3f0bcf49-7b1a-4b40-9ee7-fed4931fcc92",
+      "name": "Webhook",
+      "webhookId": "9d8ca70d-9124-4887-a9a4-faccb718a60a"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        0
+      ],
+      "id": "32c7441a-4855-4e42-8d5f-1b889bee2b6b",
+      "name": "Wait1",
+      "webhookId": "9d74a42e-9bd0-48b4-bbfc-a8a78ae9efb6"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "Granted! Verified1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1360,
+        -80
+      ],
+      "id": "325c7f5b-dab9-41a7-b23e-7aded90f1ef8",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8cad3886-e242-487c-a03c-4f534257603e",
+              "leftValue": "={{ $json.output.status }}",
+              "rightValue": "APPROVE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        912,
+        0
+      ],
+      "id": "1d0468a0-2dbb-4e14-a2aa-56cc0c8c834a",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "products",
+          "mode": "list",
+          "cachedResultName": "products"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "ProductID",
+              "value": "={{ $('Webhook').item.json.body.product_id }}"
+            },
+            {
+              "column": "UserID",
+              "value": "={{ $('Webhook').item.json.body.user_id }}"
+            },
+            {
+              "column": "CompanyID",
+              "value": "={{ $('Webhook').item.json.body.company_id }}"
+            },
+            {
+              "column": "ProductTitle",
+              "value": "={{ $('Webhook').item.json.body.title }}"
+            },
+            {
+              "column": "ProductCategory",
+              "value": "={{ $('Webhook').item.json.body.category }}"
+            },
+            {
+              "column": "ProductSize",
+              "value": "={{ $('Webhook').item.json.body.size }}"
+            },
+            {
+              "column": "ProductDescription",
+              "value": "={{ $('Webhook').item.json.body.description }}"
+            },
+            {
+              "column": "ProductImage1",
+              "value": "={{ $('Webhook').item.json.body.images[0] }}"
+            },
+            {
+              "column": "ProductImage2",
+              "value": "={{ $('Webhook').item.json.body.images[1] }}"
+            },
+            {
+              "column": "ProductImage3",
+              "value": "={{ $('Webhook').item.json.body.images[2] }}"
+            },
+            {
+              "column": "ProductImage4",
+              "value": "={{ $('Webhook').item.json.body.images[3] }}"
+            },
+            {
+              "column": "ProductImage5",
+              "value": "={{ $('Webhook').item.json.body.images[4] }}"
+            },
+            {
+              "column": "ProductPrice",
+              "value": "={{ $('Webhook').item.json.body.price }}"
+            },
+            {
+              "column": "PriceType",
+              "value": "={{ $('Webhook').item.json.body.price_type }}"
+            },
+            {
+              "column": "ProductStatus",
+              "value": "={{ $('Webhook').item.json.body.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1120,
+        -48
+      ],
+      "id": "094134ed-f40f-43e4-b3e5-3d4e87905ac8",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "mySql": {
+          "id": "nB7GPUmDlForaSLP",
+          "name": "SQL EDUOR"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Your submitted form had issues",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1152,
+        192
+      ],
+      "id": "9269a678-018f-45a0-b2c2-8c5b9524081f",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "c0b84aad-2af6-40ba-b308-8f2b11c1529b",
+      "name": "Wait",
+      "webhookId": "658e2a3e-c53e-49c7-a3bb-3449e6771c21"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        384,
+        240
+      ],
+      "id": "a07ecc7f-9888-42f1-acd1-9c24c9eef340",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ZM5IbHEBsGspONns",
+          "name": "Google Gemini(PaLM) Api  (farhan)"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c9da4dfe-541e-4fb0-9f20-5bd0eb1fa5d9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9be77d0e01ed0ac753d07f820a89c82c42e7ca4aa4b5441b03a0643259c7f6c2"
+  },
+  "id": "RjtVszVtVE5uYExD",
+  "tags": []
+}

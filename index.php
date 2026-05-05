@@ -357,11 +357,11 @@ if ($pStmt) {
                     <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-primary shadow-sm">
                         <span class="material-symbols-outlined">description</span>
                     </div>
-                    <h3 class="mb-3 text-xl font-bold text-primary">Property Description Generator</h3>
+                    <h3 class="mb-3 text-xl font-bold text-primary">AI Assissted Inquiry</h3>
                     <p class="mb-6 text-sm leading-relaxed text-on-surface-variant">
-                        Upload a few photos, and our AI writes high-converting, localized descriptions in seconds across multiple languages.
+                        Easy information and solution with a few words and sentences
                     </p>
-                    <a href="#featured" class="inline-flex items-center gap-2 font-semibold text-secondary transition-all hover:gap-3">
+                    <a href="<?= buildUrl('AI/chat.php', $sid) ?>" class="inline-flex items-center gap-2 font-semibold text-secondary transition-all hover:gap-3">
                         Try it now <span class="material-symbols-outlined text-base">arrow_forward</span>
                     </a>
                 </article>

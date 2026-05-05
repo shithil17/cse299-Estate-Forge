@@ -1,0 +1,339 @@
+{
+  "name": "Scheduling",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scheduling",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -528,
+        -48
+      ],
+      "id": "1fc38fb5-b928-4b5c-8a44-9858123c3e34",
+      "name": "Webhook",
+      "webhookId": "20d33c49-08c9-4af2-ac4b-71aef0d3bea9"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "https://docs.google.com/document/d/1mK7dvjKHrz_gRwwhkOHRHMOlNZ9SPsFQAoJH9TdybIU/edit?usp=sharing",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "insert",
+              "text": "={{ $json.body.productID }}, {{ $json.body.productTitle }}, {{ $json.body.companyName }}, {{ $json.body.userName }}, {{ $json.body.userEmail }}, {{ $json.body.userPhone }}, {{ $json.body.userCity }}, {{ $json.body.scheduleTime }}."
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        -48
+      ],
+      "id": "6191ddab-53f7-4ab4-b33d-2341c8abdd49",
+      "name": "Update a document",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "msmibGIw1jc8VB2B",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Success",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        96,
+        -48
+      ],
+      "id": "fa558da7-873d-4667-a9a3-a57f5723a263",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "farhan.tahmeed12@gmail.com",
+          "mode": "list",
+          "cachedResultName": "farhan.tahmeed12@gmail.com"
+        },
+        "start": "={{ $json.body.scheduleTime }}",
+        "end": "={{ $json.body.scheduleTime(1, 'hour') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -96,
+        -48
+      ],
+      "id": "4f36a1d2-ab5b-4131-bf98-0966b57a74be",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "Na9wztlwvbwjRz3o",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "triggerAtMinute": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -496,
+        -256
+      ],
+      "id": "43f36f81-b070-4fce-87c7-04d256e2586c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "https://docs.google.com/document/d/1mK7dvjKHrz_gRwwhkOHRHMOlNZ9SPsFQAoJH9TdybIU/edit?usp=sharing"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        -256
+      ],
+      "id": "aead038b-5e75-4de8-b3e6-8d4de590d279",
+      "name": "Get a document",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "msmibGIw1jc8VB2B",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n\n  const inputString = item.json.content;\n\n  if (!inputString || typeof inputString !== \"string\") {\n    return {\n      json: {\n        error: \"Input string not found or invalid\",\n        debug: item.json\n      }\n    };\n  }\n\n  const cleaned = inputString\n    .trim()\n    .replace(/\\.$/, \"\"); // remove trailing dot\n\n  const values = cleaned.split(',').map(v => v.trim());\n\n  return {\n    json: {\n      productID: values[0] || null,\n      productTitle: values[1] || null,\n      companyName: values[2] || null,\n      userName: values[3] || null,\n      userEmail: values[4] || null,\n      userPhone: values[5] || null,\n      userCity: values[6] || null,\n      scheduleTime: values[7] || null\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -256
+      ],
+      "id": "fe6f1998-7018-4082-8c94-3ff353a22e32",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Edit Fields').item.json.userEmail }}",
+        "subject": "A quick reminder!",
+        "emailType": "text",
+        "message": "=Hello there , hope you are doing well. We wanted to mention that you had planned a visit for  {{ $json.ProductTitle }} which was about {{ $json.ProductDescription }}. Are you still planning to visit?",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        -256
+      ],
+      "id": "3675589a-c41c-4829-82c7-9d9d5ac2c532",
+      "name": "Send a message",
+      "webhookId": "b763b258-e949-4830-b72b-a322af33cc71",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "BgoiwFu2WNpEJaRc",
+          "name": "Gmail account (farhan)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ProductTitle, ProductDescription FROM products WHERE ProductID = '{{ $json.productID }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        336,
+        -256
+      ],
+      "id": "8b7e1ac1-85f8-493b-828d-aa22f054cece",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "mySql": {
+          "id": "nB7GPUmDlForaSLP",
+          "name": "SQL EDUOR"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7d8fdd38-0176-4e79-84a2-4cc92b6387be",
+              "name": "userEmail",
+              "value": "={{ $json.userEmail }}",
+              "type": "string"
+            },
+            {
+              "id": "9d9c8e11-78b2-43ae-aa4b-d2c9501f127f",
+              "name": "scheduleTime",
+              "value": "={{ $json.scheduleTime }}",
+              "type": "string"
+            },
+            {
+              "id": "6a6ed495-75dd-49f0-b283-56e180c88cb6",
+              "name": "companyName",
+              "value": "={{ $json.companyName }}",
+              "type": "string"
+            },
+            {
+              "id": "1d7b1d17-2a89-4f55-a1bd-290de368b5ce",
+              "name": "productID",
+              "value": "={{ $json.productID }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        128,
+        -256
+      ],
+      "id": "63632e94-c10a-4a86-8ad7-74d9b5fdacfc",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a document": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5e993a9d-4e7c-4635-8a68-fb4e621f3ee3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9be77d0e01ed0ac753d07f820a89c82c42e7ca4aa4b5441b03a0643259c7f6c2"
+  },
+  "id": "ubvctWBr4QuXzu9a",
+  "tags": []
+}

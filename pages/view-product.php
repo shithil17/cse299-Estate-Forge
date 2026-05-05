@@ -235,6 +235,14 @@ $images = array_values(array_filter([
     <p class="text-sm font-medium text-on-surface-variant">© 2026 Rems</p>
 </footer>
 
+<!-- FLOATING SCHEDULE BUTTON -->
+<a href="../AI/schedule.php?id=<?= urlencode($data['ProductID']) ?>" class="fixed bottom-8 right-8 z-50 group flex items-center gap-2 rounded-full bg-secondary px-4 py-4 text-white shadow-2xl transition-all duration-300 hover:bg-primary hover:px-6">
+    <span class="material-symbols-outlined">notifications_active</span>
+    <span class="max-w-0 overflow-hidden whitespace-nowrap text-sm font-bold opacity-0 transition-all duration-300 group-hover:max-w-xs group-hover:opacity-100">
+        Want to schedule?
+    </span>
+</a>
+
 <script>
     const images = <?= json_encode($images) ?>;
     let currentIndex = 0;
@@ -265,4 +273,4 @@ $images = array_values(array_filter([
 </script>
 
 </body>
-</html> 
+</html>

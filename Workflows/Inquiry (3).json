@@ -21,13 +21,13 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"reply\": \"={{$json.reply}}\"\n}",
+        "responseBody": "={\n  \"reply\": \"{{$json.reply}}\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        1856,
+        2064,
         -144
       ],
       "id": "2144dbb9-287c-4cb6-8524-fd5dddfe415f",
@@ -68,7 +68,7 @@
       "typeVersion": 2,
       "position": [
         528,
-        -272
+        -256
       ],
       "id": "f7856880-2e8a-4fc1-98c8-7a365f60e48b",
       "name": "get n8n_inquiry doc info",
@@ -92,8 +92,34 @@
     },
     {
       "parameters": {
-        "mode": "raw",
-        "jsonOutput": "{\n  \"source\": \"={{$json.source}}\",\n  \"userMessage\": \"={{$json.userMessage}}\",\n  \"userEmail\": \"={{$json.userEmail}}\",\n  \"sessionId\": \"={{$json.sessionId}}\",\n  \"timestamp\": \"={{$now}}\"\n}",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "78b680ed-036b-48cc-905f-48e92337eda7",
+              "name": "json.source",
+              "value": "={{ $json.body.source }}",
+              "type": "string"
+            },
+            {
+              "id": "48f34995-9908-4610-abc2-30276c786a71",
+              "name": "json.userMessage",
+              "value": "={{ $json.body.userMessage }}",
+              "type": "string"
+            },
+            {
+              "id": "f6caf153-42c5-403c-b05d-37db6bf2ffd7",
+              "name": "json.userEmail",
+              "value": "={{ $json.body.userEmail }}",
+              "type": "string"
+            },
+            {
+              "id": "1d72814d-c746-4c3e-8f8b-51b62cc26757",
+              "name": "json.sessionId",
+              "value": "={{ $json.body.sessionId }}",
+              "type": "string"
+            }
+          ]
+        },
         "options": {}
       },
       "type": "n8n-nodes-base.set",
@@ -114,8 +140,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        48,
-        -224
+        32,
+        -272
       ],
       "id": "594625b9-8b38-40b8-b6d1-4d59c6dda0ca",
       "name": "Set Node Email Normalize"
@@ -134,8 +160,8 @@
       "name": "Google Gemini Chat Model",
       "credentials": {
         "googlePalmApi": {
-          "id": "ZM5IbHEBsGspONns",
-          "name": "Google Gemini(PaLM) Api  (farhan)"
+          "id": "wxxCjctHVk7Ji0SZ",
+          "name": "Google Gemini(PaLM) Api account"
         }
       }
     },
@@ -218,7 +244,7 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        1008,
+        1216,
         -272
       ],
       "id": "327ec2e1-68a4-434b-afb4-cf84a707d365",
@@ -226,14 +252,28 @@
     },
     {
       "parameters": {
-        "mode": "raw",
-        "jsonOutput": "{\n  \"status\": \"success\",\n  \"source\": \"faq\",\n  \"reply\": \"={{$json.reply}}\"\n}",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5b8f25ab-1e80-4786-b82c-380f6174fcbb",
+              "name": "reply",
+              "value": "={{ $json.reply }}",
+              "type": "string"
+            },
+            {
+              "id": "fe1bac8e-e24c-4e42-9e42-402bd01591bd",
+              "name": "action",
+              "value": "={{ $json.action }}",
+              "type": "string"
+            }
+          ]
+        },
         "options": {}
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1184,
+        1392,
         -496
       ],
       "id": "b8e822cf-4310-4518-be0a-344f90aac2ec",
@@ -243,13 +283,13 @@
       "parameters": {
         "sendTo": "={{$node[\"Normalize Input\"].json[\"userEmail\"]}}",
         "subject": "Response to Your Inquiry",
-        "message": "={   \"reply\": \"={{$json.reply}}\" }",
+        "message": "={{$json.reply}}",
         "options": {}
       },
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        1824,
+        2032,
         -400
       ],
       "id": "30ea9fe1-f431-4232-8295-3930b09d69da",
@@ -274,7 +314,7 @@
           "conditions": [
             {
               "id": "f9875262-e3ca-4241-b887-a655f9243fef",
-              "leftValue": "={{$node[\"Normalize Input\"].json[\"source\"]}}",
+              "leftValue": "={{$json[\"source\"]}}",
               "rightValue": "email",
               "operator": {
                 "type": "string",
@@ -290,7 +330,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1648,
+        1856,
         -432
       ],
       "id": "0a55cd89-3802-48ca-a419-fc5f2c02fd9e",
@@ -305,8 +345,8 @@
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.5,
       "position": [
-        1184,
-        -352
+        1440,
+        -336
       ],
       "id": "78ef0924-61d8-4dbe-af9f-61c0bf2c8421",
       "name": "Execute a SQL query",
@@ -324,7 +364,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        1584,
+        1792,
         144
       ],
       "id": "a1821bcb-2f88-40d5-9145-18031cb2e919",
@@ -339,7 +379,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are an inquiry-routing AI for a real estate platform.\n\nYou are given:\n1. A FAQ / business knowledge document\n2. SQL database schema and meanings\n3. The user's question\n\nYour job:\nDecide the best next action.\n\nPossible actions:\n\n1. FAQ_REPLY\n- if the answer is already available in the FAQ/business knowledge.\n- reply directly and professionally.\n\n2. SQL_QUERY\n- if the answer requires product/company/member data.\n- generate ONE valid SQL query based on the schema.\n\n3. ESCALATE\n- if the answer is unclear, unavailable, or requires human assistance.\n\nIMPORTANT RULES:\n- Use only the provided schema.\n- Never invent tables/columns.\n- Return JSON only.\n- If FAQ_REPLY, include reply.\n- If SQL_QUERY, include sql_query.\n- If ESCALATE, include a polite acknowledgement.\n\nCONTEXT:\n{{$node[\"get n8n_inquiry doc info\"].json[\"text\"]}}\n\nUSER QUESTION:\n{{$json.userMessage}}",
+        "text": "=You are an inquiry-routing AI for a real estate platform.\n\nYou are given:\n1. A FAQ / business knowledge document\n2. SQL database schema and meanings\n3. The user's question\n\nYour job:\nDecide the best next action.\nUser may ask questions that kind of mean the same or similar to that in Docs. If questions are not relevant then think of the other two scenarios. User may add a place name of Dhaka or a price range and ask if it is available or not for that land or property in that case run a SQL query or just Escalate\n\nPossible actions:\n\n1. FAQ_REPLY\n- if the answer is already available in the FAQ/business knowledge.\n- reply directly and professionally.\n\n2. SQL_QUERY\n- if the answer requires product/company/member data.\n- generate ONE valid SQL query based on the schema.\n-Any clue can be found from ProductDescription, ProductTitle, ProductCategory, or similarly in other tables like in groups. Take keywords from userMessage do not generate keywords\n\n3. ESCALATE\n- if the answer is unclear, unavailable, or requires human assistance.\n\nIMPORTANT RULES:\n- Use only the provided schema.\n- Never invent tables/columns.\n- Return ONLY valid JSON.\n- No markdown.\n- No explanations.\n\nJSON FORMAT:\n\nFor FAQ:\n{\n  \"action\": \"FAQ_REPLY\",\n  \"reply\": \"your response here\"\n}\n\nFor SQL:\n{\n  \"action\": \"SQL_QUERY\",\n  \"sql_query\": \"SELECT ...\"\n}\n\nFor Escalation:\n{\n  \"action\": \"ESCALATE\",\n  \"reply\": \"Thank you for your inquiry. Our team will get back to you soon.\"\n}\n\nCONTEXT:\n{{$node[\"get n8n_inquiry doc info\"].json[\"content\"]}}\n\nUSER QUESTION:\n{{$json[\"userMessage\"]}}",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -360,11 +400,24 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        1376,
-        -176
+        1616,
+        -80
       ],
       "id": "c0d2334f-ae59-44da-9c67-d1d2922bd73a",
       "name": "AI Raw Data -> Readable"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output || $json.text || $json.response || \"\";\n\ntry {\n  return [JSON.parse(raw)];\n} catch (e) {\n  return [{\n    action: \"ESCALATE\",\n    reply: \"Unable to process request.\"\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        -256
+      ],
+      "id": "a616f2af-743f-4c8a-8c3e-a0054db02f31",
+      "name": "Code in JavaScript"
     }
   ],
   "pinData": {},
@@ -515,7 +568,7 @@
       "main": [
         [
           {
-            "node": "Switch",
+            "node": "Code in JavaScript",
             "type": "main",
             "index": 0
           }
@@ -543,6 +596,17 @@
           }
         ]
       ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -550,7 +614,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "e4aa5b81-913b-404e-870b-c668bf364245",
+  "versionId": "154c4770-7764-4f0b-adf5-7d1789f2f7ce",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "9be77d0e01ed0ac753d07f820a89c82c42e7ca4aa4b5441b03a0643259c7f6c2"
